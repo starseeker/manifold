@@ -15,6 +15,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(manifold LANGUAGES CXX)
 
+add_definitions(-g)
+
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(MANIFOLD_PAR "NONE" CACHE STRING "Parallel backend, either \"TBB\" or \"NONE\"")
@@ -45,6 +47,7 @@ endif()
 option(TRACY_ENABLE "Use tracy profiling" OFF) 
 option(TRACY_MEMORY_USAGE "Track memory allocation with tracy (expensive)" OFF)
 option(BUILD_TEST_CGAL "Build CGAL performance comparisons" OFF)
+option(TEST_HULL_PERFORMANCE "Test Hulling Algorithm" ON)
 if(TRACY_ENABLE)
   option(CMAKE_BUILD_TYPE "Build type" RelWithDebInfo)
   if(TRACY_MEMORY_USAGE)
