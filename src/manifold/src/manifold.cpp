@@ -35,6 +35,9 @@
 
 #include "quickhull.hpp"
 
+#include <Mathematics/ArbitraryPrecision.h>
+#include <Mathematics/ConvexHull3.h>
+
 namespace {
 using namespace manifold;
 using namespace thrust::placeholders;
@@ -1379,6 +1382,38 @@ Manifold Manifold::Hull6(const std::vector<glm::vec3>& pts) {
   return Manifold(mesh);
 }
 
+Manifold Manifold::Hull7(const std::vector<glm::vec3>& pts) {
+  ZoneScoped;
+  const int numVert = pts.size();
+  if (numVert < 4) return Manifold();
+
+  std::vector<gte::Vector3<float>> vertices(numVert);
+  for (int i = 0; i < numVert; i++) {
+	  vertices[i][0] = pts[i].x;
+	  vertices[i][1] = pts[i].y;
+	  vertices[i][2] = pts[i].z;
+  }
+
+  gte::ConvexHull3<float> ch;
+  ch(vertices, 0);
+
+  Mesh mesh;
+  std::vector<size_t> outputVertices = ch.GetVertices();
+  std::vector<size_t> outputHull = ch.GetHull();
+  mesh.vertPos.reserve(outputVertices.size());
+  mesh.triVerts.reserve(outputHull.size());
+  for (size_t i = 0; i < outputVertices.size(); i++) {
+	  mesh.vertPos.push_back(pts[i]);
+  }
+
+  for (size_t i = 0; i < outputHull.size()/3; i++) {
+	  mesh.triVerts.push_back({outputHull[3*i], outputHull[3*i+1], outputHull[3*i+2]});
+  }
+
+  return Manifold(mesh);
+}
+
+
 
 /**
  * Compute the convex hull of this manifold.
@@ -1409,6 +1444,13 @@ Manifold Manifold::Hull5() const { return Hull5(GetMesh().vertPos); }
  * Compute the convex hull of this manifold.
  */
 Manifold Manifold::Hull6() const { return Hull6(GetMesh().vertPos); }
+
+
+/**
+ * Compute the convex hull of this manifold.
+ */
+Manifold Manifold::Hull7() const { return Hull7(GetMesh().vertPos); }
+
 
 /**
  * Compute the convex hull enveloping a set of manifolds.
@@ -1464,6 +1506,17 @@ Manifold Manifold::Hull5(const std::vector<Manifold>& manifolds) {
 Manifold Manifold::Hull6(const std::vector<Manifold>& manifolds) {
   return Compose(manifolds).Hull6();
 }
+
+
+/**
+ * Compute the convex hull enveloping a set of manifolds.
+ *
+ * @param manifolds A vector of manifolds over which to compute a convex hull.
+ */
+Manifold Manifold::Hull7(const std::vector<Manifold>& manifolds) {
+  return Compose(manifolds).Hull7();
+}
+
 
 /**
  * Returns the minimum gap between two manifolds. Returns a float between

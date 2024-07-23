@@ -23,14 +23,19 @@ FetchContent_Declare(
   GIT_TAG master
 )
 
-# Fetch the declared library.
+include_directories(
+	 ${CMAKE_SOURCE_DIR}/../GeometricTools/GTE
+	 )
+
+ # Fetch the declared library.
 FetchContent_MakeAvailable(qhull_lib)
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS *.cpp)
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:include/${CMAKE_PROJECT_NAME}>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	 )
 target_link_libraries(${PROJECT_NAME}
     PUBLIC utilities cross_section sdf
     PRIVATE collider polygon ${MANIFOLD_INCLUDE} quickhull Fast-Quick-Hull
