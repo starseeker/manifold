@@ -20,7 +20,6 @@
 #include "csg_tree.h"
 #include "impl.h"
 #include "par.h"
-#include "quickhull.h"
 
 namespace {
 using namespace manifold;
@@ -950,5 +949,22 @@ double Manifold::MinGap(const Manifold& other, double searchLength) const {
 
   return GetCsgLeafNode().GetImpl()->MinGap(*other.GetCsgLeafNode().GetImpl(),
                                             searchLength);
+}
+
+Manifold Manifold::SimplifyToPrecision(double precision) const {
+  auto impl = GetCsgLeafNode().GetImpl();
+  auto implNew = std::make_shared<Impl>();
+  implNew->bBox_ = impl->bBox_;
+  implNew->precision_ = precision;
+  implNew->vertPos_ = impl->vertPos_;
+  implNew->halfedge_ = impl->halfedge_;
+  implNew->vertNormal_ = impl->vertNormal_;
+  implNew->faceNormal_ = impl->faceNormal_;
+  implNew->halfedgeTangent_ = impl->halfedgeTangent_;
+  implNew->meshRelation_ = impl->meshRelation_;
+  implNew->collider_ = impl->collider_;
+  implNew->SimplifyTopology();
+  implNew->Finish();
+  return Manifold(implNew);
 }
 }  // namespace manifold
