@@ -36,13 +36,13 @@ namespace manifold {
  * @param[in]  p  One endpoint of the second line segment.
  * @param[in]  b  Other endpoint of the second line segment.
  */
-inline void EdgeEdgeDist(vec3& x, vec3& y,  // closest points
-                         const vec3& p,
-                         const vec3& a,  // seg 1 origin, vector
-                         const vec3& q,
-                         const vec3& b)  // seg 2 origin, vector
+inline void EdgeEdgeDist(glm::dvec3& x, glm::dvec3& y,  // closest points
+                         const glm::dvec3& p,
+                         const glm::dvec3& a,  // seg 1 origin, vector
+                         const glm::dvec3& q,
+                         const glm::dvec3& b)  // seg 2 origin, vector
 {
-  const vec3 T = q - p;
+  const glm::dvec3 T = q - p;
   const auto ADotA = glm::dot(a, a);
   const auto BDotB = glm::dot(b, b);
   const auto ADotB = glm::dot(a, b);
@@ -93,14 +93,14 @@ inline void EdgeEdgeDist(vec3& x, vec3& y,  // closest points
  * @param  p  First  triangle.
  * @param  q  Second triangle.
  */
-inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
-                                            const std::array<vec3, 3>& q) {
-  std::array<vec3, 3> Sv;
+inline auto DistanceTriangleTriangleSquared(const std::array<glm::dvec3, 3>& p,
+                                            const std::array<glm::dvec3, 3>& q) {
+  std::array<glm::dvec3, 3> Sv;
   Sv[0] = p[1] - p[0];
   Sv[1] = p[2] - p[1];
   Sv[2] = p[0] - p[2];
 
-  std::array<vec3, 3> Tv;
+  std::array<glm::dvec3, 3> Tv;
   Tv[0] = q[1] - q[0];
   Tv[1] = q[2] - q[1];
   Tv[2] = q[0] - q[2];
@@ -111,10 +111,10 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
 
   for (uint32_t i = 0; i < 3; i++) {
     for (uint32_t j = 0; j < 3; j++) {
-      vec3 cp;
-      vec3 cq;
+      glm::dvec3 cp;
+      glm::dvec3 cq;
       EdgeEdgeDist(cp, cq, p[i], Sv[i], q[j], Tv[j]);
-      const vec3 V = cq - cp;
+      const glm::dvec3 V = cq - cp;
       const auto dd = glm::dot(V, V);
 
       if (dd <= mindd) {
@@ -122,7 +122,7 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
 
         uint32_t id = i + 2;
         if (id >= 3) id -= 3;
-        vec3 Z = p[id] - cp;
+        glm::dvec3 Z = p[id] - cp;
         auto a = glm::dot(Z, V);
         id = j + 2;
         if (id >= 3) id -= 3;
@@ -143,11 +143,11 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
     }
   }
 
-  vec3 Sn = glm::cross(Sv[0], Sv[1]);
+  glm::dvec3 Sn = glm::cross(Sv[0], Sv[1]);
   auto Snl = glm::dot(Sn, Sn);
 
   if (Snl > 1e-15) {
-    const vec3 Tp(glm::dot(p[0] - q[0], Sn), glm::dot(p[0] - q[1], Sn),
+    const glm::dvec3 Tp(glm::dot(p[0] - q[0], Sn), glm::dot(p[0] - q[1], Sn),
                   glm::dot(p[0] - q[2], Sn));
 
     int index = -1;
@@ -162,10 +162,10 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
     if (index >= 0) {
       shown_disjoint = true;
 
-      const vec3& qIndex = q[index];
+      const glm::dvec3& qIndex = q[index];
 
-      vec3 V = qIndex - p[0];
-      vec3 Z = glm::cross(Sn, Sv[0]);
+      glm::dvec3 V = qIndex - p[0];
+      glm::dvec3 Z = glm::cross(Sn, Sv[0]);
       if (glm::dot(V, Z) > 0.0) {
         V = qIndex - p[1];
         Z = glm::cross(Sn, Sv[1]);
@@ -173,8 +173,8 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
           V = qIndex - p[2];
           Z = glm::cross(Sn, Sv[2]);
           if (glm::dot(V, Z) > 0.0) {
-            vec3 cp = qIndex + Sn * Tp[index] / Snl;
-            vec3 cq = qIndex;
+            glm::dvec3 cp = qIndex + Sn * Tp[index] / Snl;
+            glm::dvec3 cq = qIndex;
             return glm::dot(cp - cq, cp - cq);
           }
         }
@@ -182,11 +182,11 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
     }
   }
 
-  vec3 Tn = glm::cross(Tv[0], Tv[1]);
+  glm::dvec3 Tn = glm::cross(Tv[0], Tv[1]);
   auto Tnl = glm::dot(Tn, Tn);
 
   if (Tnl > 1e-15) {
-    const vec3 Sp(glm::dot(q[0] - p[0], Tn), glm::dot(q[0] - p[1], Tn),
+    const glm::dvec3 Sp(glm::dot(q[0] - p[0], Tn), glm::dot(q[0] - p[1], Tn),
                   glm::dot(q[0] - p[2], Tn));
 
     int index = -1;
@@ -201,10 +201,10 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
     if (index >= 0) {
       shown_disjoint = true;
 
-      const vec3& pIndex = p[index];
+      const glm::dvec3& pIndex = p[index];
 
-      vec3 V = pIndex - q[0];
-      vec3 Z = glm::cross(Tn, Tv[0]);
+      glm::dvec3 V = pIndex - q[0];
+      glm::dvec3 Z = glm::cross(Tn, Tv[0]);
       if (glm::dot(V, Z) > 0.0) {
         V = pIndex - q[1];
         Z = glm::cross(Tn, Tv[1]);
@@ -212,8 +212,8 @@ inline auto DistanceTriangleTriangleSquared(const std::array<vec3, 3>& p,
           V = pIndex - q[2];
           Z = glm::cross(Tn, Tv[2]);
           if (glm::dot(V, Z) > 0.0) {
-            vec3 cp = pIndex;
-            vec3 cq = pIndex + Tn * Sp[index] / Tnl;
+            glm::dvec3 cp = pIndex;
+            glm::dvec3 cq = pIndex + Tn * Sp[index] / Tnl;
             return glm::dot(cp - cq, cp - cq);
           }
         }

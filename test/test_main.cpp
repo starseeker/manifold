@@ -129,9 +129,9 @@ MeshGL Csaszar() {
 }
 
 struct GyroidSDF {
-  double operator()(vec3 p) const {
-    const vec3 min = p;
-    const vec3 max = vec3(glm::two_pi<double>()) - p;
+  double operator()(glm::dvec3 p) const {
+    const glm::dvec3 min = p;
+    const glm::dvec3 max = glm::dvec3(glm::two_pi<double>()) - p;
     const double min3 = std::min(min.x, std::min(min.y, min.z));
     const double max3 = std::min(max.x, std::min(max.y, max.z));
     const double bound = std::min(min3, max3);
@@ -143,7 +143,7 @@ struct GyroidSDF {
 
 Manifold Gyroid() {
   const double period = glm::two_pi<double>();
-  return Manifold::LevelSet(GyroidSDF(), {vec3(0), vec3(period)}, 0.5);
+  return Manifold::LevelSet(GyroidSDF(), {glm::dvec3(0), glm::dvec3(period)}, 0.5);
 }
 
 MeshGL TetGL() {
@@ -164,12 +164,12 @@ MeshGL TetGL() {
 
 // STL-style meshGL with face normals. Not manifold, requires Merge().
 MeshGL CubeSTL() {
-  const MeshGL cubeIn = Manifold::Cube(vec3(1), true).GetMeshGL();
+  const MeshGL cubeIn = Manifold::Cube(glm::dvec3(1), true).GetMeshGL();
   MeshGL cube;
   cube.numProp = 6;
 
   for (size_t tri = 0, vert = 0; tri < cubeIn.NumTri(); tri++) {
-    mat3 triPos;
+    glm::dmat3 triPos;
     for (const int i : {0, 1, 2}) {
       cube.triVerts.push_back(vert++);
 
@@ -181,7 +181,7 @@ MeshGL CubeSTL() {
       }
     }
 
-    const vec3 normal = glm::normalize(
+    const glm::dvec3 normal = glm::normalize(
         glm::cross(triPos[1] - triPos[0], triPos[2] - triPos[0]));
     for (const int i : {0, 1, 2}) {
       for (const int j : {0, 1, 2}) {
@@ -221,10 +221,10 @@ MeshGL WithIndexColors(const MeshGL& in) {
 
 MeshGL WithPositionColors(const Manifold& in) {
   const Box bbox = in.BoundingBox();
-  const vec3 size = bbox.Size();
+  const glm::dvec3 size = bbox.Size();
 
   Manifold out = in.SetProperties(
-      3, [bbox, size](double* prop, vec3 pos, const double* oldProp) {
+      3, [bbox, size](double* prop, glm::dvec3 pos, const double* oldProp) {
         for (int i : {0, 1, 2}) {
           prop[i] = (pos[i] - bbox.min[i]) / size[i];
         }
@@ -297,16 +297,16 @@ void Identical(const MeshGL& mesh1, const MeshGL& mesh2) {
   ASSERT_EQ(mesh1.triVerts.size(), mesh2.triVerts.size());
 
   // reorder faces
-  std::vector<ivec3> triVerts1(mesh1.triVerts.size() / 3);
-  std::vector<ivec3> triVerts2(mesh1.triVerts.size() / 3);
+  std::vector<glm::vec<3, int>> triVerts1(mesh1.triVerts.size() / 3);
+  std::vector<glm::vec<3, int>> triVerts2(mesh1.triVerts.size() / 3);
 
   for (size_t i = 0; i < triVerts1.size(); ++i) {
-    triVerts1[i] = ivec3(mesh1.triVerts[3 * i], mesh1.triVerts[3 * i + 1],
+    triVerts1[i] = glm::vec<3, int>(mesh1.triVerts[3 * i], mesh1.triVerts[3 * i + 1],
                          mesh1.triVerts[3 * i + 2]);
-    triVerts2[i] = ivec3(mesh2.triVerts[3 * i], mesh2.triVerts[3 * i + 1],
+    triVerts2[i] = glm::vec<3, int>(mesh2.triVerts[3 * i], mesh2.triVerts[3 * i + 1],
                          mesh2.triVerts[3 * i + 2]);
   }
-  auto comp = [](const ivec3& a, const ivec3& b) {
+  auto comp = [](const glm::vec<3, int>& a, const glm::vec<3, int>& b) {
     return a.x < b.x || (a.x == b.x && a.y < b.y) ||
            (a.x == b.x && a.y == b.y && a.z < b.z);
   };
@@ -319,13 +319,13 @@ void Identical(const MeshGL& mesh1, const MeshGL& mesh2) {
 void RelatedGL(const Manifold& out, const std::vector<MeshGL>& originals,
                bool checkNormals, bool updateNormals) {
   ASSERT_FALSE(out.IsEmpty());
-  const ivec3 normalIdx = updateNormals ? ivec3(3, 4, 5) : ivec3(0);
+  const glm::vec<3, int> normalIdx = updateNormals ? glm::vec<3, int>(3, 4, 5) : glm::vec<3, int>(0);
   MeshGL output = out.GetMeshGL(normalIdx);
   for (size_t run = 0; run < output.runOriginalID.size(); ++run) {
     const float* m = output.runTransform.data() + 12 * run;
-    const mat4x3 transform = output.runTransform.empty()
-                                 ? mat4x3(1.0)
-                                 : mat4x3(m[0], m[1], m[2], m[3], m[4], m[5],
+    const glm::dmat4x3 transform = output.runTransform.empty()
+                                 ? glm::dmat4x3(1.0)
+                                 : glm::dmat4x3(m[0], m[1], m[2], m[3], m[4], m[5],
                                           m[6], m[7], m[8], m[9], m[10], m[11]);
     size_t i = 0;
     for (; i < originals.size(); ++i) {
@@ -341,16 +341,16 @@ void RelatedGL(const Manifold& out, const std::vector<MeshGL>& originals,
       }
       const int inTri = output.faceID.empty() ? tri : output.faceID[tri];
       ASSERT_LT(inTri, inMesh.triVerts.size() / 3);
-      ivec3 inTriangle = {inMesh.triVerts[3 * inTri],
+      glm::vec<3, int> inTriangle = {inMesh.triVerts[3 * inTri],
                           inMesh.triVerts[3 * inTri + 1],
                           inMesh.triVerts[3 * inTri + 2]};
       inTriangle *= inMesh.numProp;
 
-      mat3 inTriPos;
-      mat3 outTriPos;
+      glm::dmat3 inTriPos;
+      glm::dmat3 outTriPos;
       for (int j : {0, 1, 2}) {
         const int vert = output.triVerts[3 * tri + j];
-        vec4 pos;
+        glm::dvec4 pos;
         for (int k : {0, 1, 2}) {
           pos[k] = inMesh.vertProperties[inTriangle[j] + k];
           outTriPos[j][k] = output.vertProperties[vert * output.numProp + k];
@@ -358,9 +358,9 @@ void RelatedGL(const Manifold& out, const std::vector<MeshGL>& originals,
         pos[3] = 1;
         inTriPos[j] = transform * pos;
       }
-      vec3 outNormal =
+      glm::dvec3 outNormal =
           glm::cross(outTriPos[1] - outTriPos[0], outTriPos[2] - outTriPos[0]);
-      vec3 inNormal =
+      glm::dvec3 inNormal =
           glm::cross(inTriPos[1] - inTriPos[0], inTriPos[2] - inTriPos[0]);
       const double area = glm::length(inNormal);
       if (area == 0) continue;
@@ -368,14 +368,14 @@ void RelatedGL(const Manifold& out, const std::vector<MeshGL>& originals,
 
       for (int j : {0, 1, 2}) {
         const int vert = output.triVerts[3 * tri + j];
-        vec3 edges[3];
+        glm::dvec3 edges[3];
         for (int k : {0, 1, 2}) edges[k] = inTriPos[k] - outTriPos[j];
         const double volume =
             glm::dot(edges[0], glm::cross(edges[1], edges[2]));
         ASSERT_LE(volume, area * output.precision);
 
         if (checkNormals) {
-          vec3 normal;
+          glm::dvec3 normal;
           for (int k : {0, 1, 2})
             normal[k] = output.vertProperties[vert * output.numProp + 3 + k];
           ASSERT_NEAR(glm::length(normal), 1, 0.0001);
@@ -385,10 +385,10 @@ void RelatedGL(const Manifold& out, const std::vector<MeshGL>& originals,
             const double propOut =
                 output.vertProperties[vert * output.numProp + p];
 
-            vec3 inProp = {inMesh.vertProperties[inTriangle[0] + p],
+            glm::dvec3 inProp = {inMesh.vertProperties[inTriangle[0] + p],
                            inMesh.vertProperties[inTriangle[1] + p],
                            inMesh.vertProperties[inTriangle[2] + p]};
-            vec3 edgesP[3];
+            glm::dvec3 edgesP[3];
             for (int k : {0, 1, 2}) {
               edgesP[k] = edges[k] + inNormal * inProp[k] - inNormal * propOut;
             }

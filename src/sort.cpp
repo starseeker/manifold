@@ -23,7 +23,7 @@ using namespace manifold;
 
 constexpr uint32_t kNoCode = 0xFFFFFFFFu;
 
-uint32_t MortonCode(vec3 position, Box bBox) {
+uint32_t MortonCode(glm::dvec3 position, Box bBox) {
   // Unreferenced vertices are marked NaN, and this will sort them to the end
   // (the Morton code only uses the first 30 of 32 bits).
   if (isnan(position.x)) return kNoCode;
@@ -44,7 +44,7 @@ struct Reindex {
 struct MarkProp {
   VecView<int> keep;
 
-  void operator()(ivec3 triProp) {
+  void operator()(glm::vec<3, int> triProp) {
     for (const int i : {0, 1, 2}) {
       reinterpret_cast<std::atomic<int>*>(&keep[triProp[i]])
           ->store(1, std::memory_order_relaxed);
@@ -55,7 +55,7 @@ struct MarkProp {
 struct ReindexProps {
   VecView<const int> old2new;
 
-  void operator()(ivec3& triProp) {
+  void operator()(glm::vec<3, int>& triProp) {
     for (const int i : {0, 1, 2}) {
       triProp[i] = old2new[triProp[i]];
     }
@@ -64,9 +64,9 @@ struct ReindexProps {
 
 struct ReindexFace {
   VecView<Halfedge> halfedge;
-  VecView<vec4> halfedgeTangent;
+  VecView<glm::dvec4> halfedgeTangent;
   VecView<const Halfedge> oldHalfedge;
-  VecView<const vec4> oldHalfedgeTangent;
+  VecView<const glm::dvec4> oldHalfedgeTangent;
   VecView<const int> faceNew2Old;
   VecView<const int> faceOld2New;
 
@@ -153,7 +153,7 @@ bool MergeMeshGLP(MeshGLP<Precision, I>& mesh) {
              [&vertMorton, &vertBox, &openVerts, &bBox, &mesh](const int i) {
                int vert = openVerts[i];
 
-               const vec3 center(mesh.vertProperties[mesh.numProp * vert],
+               const glm::dvec3 center(mesh.vertProperties[mesh.numProp * vert],
                                  mesh.vertProperties[mesh.numProp * vert + 1],
                                  mesh.vertProperties[mesh.numProp * vert + 2]);
 
@@ -385,10 +385,10 @@ void Manifold::Impl::GetFaceBoxMorton(Vec<Box>& faceBox,
                  return;
                }
 
-               vec3 center(0.0);
+               glm::dvec3 center(0.0);
 
                for (const int i : {0, 1, 2}) {
-                 const vec3 pos = vertPos_[halfedge_[3 * face + i].startVert];
+                 const glm::dvec3 pos = vertPos_[halfedge_[3 * face + i].startVert];
                  center += pos;
                  faceBox[face].Union(pos);
                }
@@ -441,7 +441,7 @@ void Manifold::Impl::GatherFaces(const Vec<int>& faceNew2Old) {
   if (faceNormal_.size() == NumTri()) Permute(faceNormal_, faceNew2Old);
 
   Vec<Halfedge> oldHalfedge(std::move(halfedge_));
-  Vec<vec4> oldHalfedgeTangent(std::move(halfedgeTangent_));
+  Vec<glm::dvec4> oldHalfedgeTangent(std::move(halfedgeTangent_));
   Vec<int> faceOld2New(oldHalfedge.size() / 3);
   auto policy = autoPolicy(numTri, 1e5);
   scatter(countAt(0_uz), countAt(numTri), faceNew2Old.begin(),

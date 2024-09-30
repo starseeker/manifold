@@ -34,17 +34,17 @@ struct Material {
   double metalness = 1;
   /// Color (RGBA) multiplier to apply to the whole mesh (each value between 0
   /// and 1).
-  vec4 color = vec4(1.0);
+  glm::dvec4 color = glm::dvec4(1.0);
   /// Optional: If non-empty, must match Mesh.vertPos. Provides an RGBA color
   /// for each vertex, linearly interpolated across triangles. Colors are
   /// linear, not sRGB. Only used with Mesh export, not MeshGL.
-  std::vector<vec4> vertColor;
+  std::vector<glm::dvec4> vertColor;
   /// For MeshGL export, gives the property indicies where the normal channels
   /// can be found. Must be >= 3, since the first three are position.
-  ivec3 normalChannels = ivec3(-1);
+  glm::vec<3, int> normalChannels = glm::vec<3, int>(-1);
   /// For MeshGL export, gives the property indicies where the color channels
   /// can be found. Any index < 0 will output all 1.0 for that channel.
-  ivec4 colorChannels = ivec4(-1);
+  glm::vec<4, int> colorChannels = glm::vec<4, int>(-1);
 };
 
 /**

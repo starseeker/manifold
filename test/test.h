@@ -23,9 +23,9 @@
 #include "manifold/meshIO.h"
 #endif
 
-// somehow gcc11 + gtest 1.11.0 is unable to print ivec3
+// somehow gcc11 + gtest 1.11.0 is unable to print glm::vec<3, int>
 namespace glm {
-inline void PrintTo(const ivec3& point, std::ostream* os) {
+inline void PrintTo(const glm::vec<3, int>& point, std::ostream* os) {
   *os << "(" << point.x << "," << point.y << "," << point.x << ")";
 }
 }  // namespace glm

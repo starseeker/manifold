@@ -26,23 +26,23 @@ namespace manifold {
 
 double defaultEps() { return 0.0000001; }
 
-inline double getSquaredDistanceBetweenPointAndRay(const vec3& p,
+inline double getSquaredDistanceBetweenPointAndRay(const glm::dvec3& p,
                                                    const Ray& r) {
-  const vec3 s = p - r.S;
+  const glm::dvec3 s = p - r.S;
   double t = glm::dot(s, r.V);
   return glm::dot(s, s) - t * t * r.VInvLengthSquared;
 }
 
-inline double getSquaredDistance(const vec3& p1, const vec3& p2) {
+inline double getSquaredDistance(const glm::dvec3& p1, const glm::dvec3& p2) {
   return glm::dot(p1 - p2, p1 - p2);
 }
 // Note that the unit of distance returned is relative to plane's normal's
 // length (divide by N.getNormalized() if needed to get the "real" distance).
-inline double getSignedDistanceToPlane(const vec3& v, const Plane& p) {
+inline double getSignedDistanceToPlane(const glm::dvec3& v, const Plane& p) {
   return glm::dot(p.N, v) + p.D;
 }
 
-inline vec3 getTriangleNormal(const vec3& a, const vec3& b, const vec3& c) {
+inline glm::dvec3 getTriangleNormal(const glm::dvec3& a, const glm::dvec3& b, const glm::dvec3& c) {
   // We want to get (a-c).crossProduct(b-c) without constructing temp vectors
   double x = a.x - c.x;
   double y = a.y - c.y;
@@ -53,7 +53,7 @@ inline vec3 getTriangleNormal(const vec3& a, const vec3& b, const vec3& c) {
   double px = y * rhsz - z * rhsy;
   double py = z * rhsx - x * rhsz;
   double pz = x * rhsy - y * rhsx;
-  return glm::normalize(vec3(px, py, pz));
+  return glm::normalize(glm::dvec3(px, py, pz));
 }
 
 size_t MeshBuilder::addFace() {
@@ -168,7 +168,7 @@ std::array<int, 3> MeshBuilder::getVertexIndicesOfFace(const Face& f) const {
 }
 
 HalfEdgeMesh::HalfEdgeMesh(const MeshBuilder& builderObject,
-                           const VecView<vec3>& vertexData) {
+                           const VecView<glm::dvec3>& vertexData) {
   std::unordered_map<size_t, size_t> faceMapping;
   std::unordered_map<size_t, size_t> halfEdgeMapping;
   std::unordered_map<size_t, size_t> vertexMapping;
@@ -221,9 +221,9 @@ HalfEdgeMesh::HalfEdgeMesh(const MeshBuilder& builderObject,
 /*
  * Implementation of the algorithm
  */
-std::pair<Vec<Halfedge>, Vec<vec3>> QuickHull::buildMesh(double epsilon) {
+std::pair<Vec<Halfedge>, Vec<glm::dvec3>> QuickHull::buildMesh(double epsilon) {
   if (originalVertexData.size() == 0) {
-    return {Vec<Halfedge>(), Vec<vec3>()};
+    return {Vec<Halfedge>(), Vec<glm::dvec3>()};
   }
 
   // Very first: find extreme values and use them to compute the scale of the
@@ -302,7 +302,7 @@ std::pair<Vec<Halfedge>, Vec<vec3>> QuickHull::buildMesh(double epsilon) {
   auto saturate = [](int c) { return c > 0 ? 1 : 0; };
   exclusive_scan(TransformIterator(counts.begin(), saturate),
                  TransformIterator(counts.end(), saturate), counts.begin(), 0);
-  Vec<vec3> vertices(counts.back());
+  Vec<glm::dvec3> vertices(counts.back());
   for_each(autoPolicy(originalVertexData.size()), countAt(0_uz),
            countAt(originalVertexData.size()), [&](size_t i) {
              if (counts[i + 1] - counts[i] > 0) {
@@ -362,7 +362,7 @@ void QuickHull::createConvexHalfedgeMesh() {
 
     // Pick the most distant point to this triangle plane as the point to which
     // we extrude
-    const vec3& activePoint = originalVertexData[tf.mostDistantPoint];
+    const glm::dvec3& activePoint = originalVertexData[tf.mostDistantPoint];
     const size_t activePointIndex = tf.mostDistantPoint;
 
     // Find out the faces that have our active point on their positive side
@@ -516,7 +516,7 @@ void QuickHull::createConvexHalfedgeMesh() {
 
       auto& newFace = mesh.faces[newFaceIndex];
 
-      const vec3 planeNormal = getTriangleNormal(
+      const glm::dvec3 planeNormal = getTriangleNormal(
           originalVertexData[A], originalVertexData[B], activePoint);
       newFace.P = Plane(planeNormal, activePoint);
       newFace.he = AB;
@@ -575,7 +575,7 @@ std::array<size_t, 6> QuickHull::getExtremeValues() {
                            originalVertexData[0].z, originalVertexData[0].z};
   const size_t vCount = originalVertexData.size();
   for (size_t i = 1; i < vCount; i++) {
-    const vec3& pos = originalVertexData[i];
+    const glm::dvec3& pos = originalVertexData[i];
     if (pos.x > extremeVals[0]) {
       extremeVals[0] = pos.x;
       outIndices[0] = i;
@@ -649,7 +649,7 @@ void QuickHull::setupInitialTetrahedron() {
     size_t v[4] = {0, std::min((size_t)1, vertexCount - 1),
                    std::min((size_t)2, vertexCount - 1),
                    std::min((size_t)3, vertexCount - 1)};
-    const vec3 N =
+    const glm::dvec3 N =
         getTriangleNormal(originalVertexData[v[0]], originalVertexData[v[1]],
                           originalVertexData[v[2]]);
     const Plane trianglePlane(N, originalVertexData[v[0]]);
@@ -706,7 +706,7 @@ void QuickHull::setupInitialTetrahedron() {
     // point of the triangle
     auto it =
         std::find_if(originalVertexData.begin(), originalVertexData.end(),
-                     [&](const vec3& ve) {
+                     [&](const glm::dvec3& ve) {
                        return ve != originalVertexData[selectedPoints.first] &&
                               ve != originalVertexData[selectedPoints.second];
                      });
@@ -716,7 +716,7 @@ void QuickHull::setupInitialTetrahedron() {
             : std::distance(originalVertexData.begin(), it);
     it =
         std::find_if(originalVertexData.begin(), originalVertexData.end(),
-                     [&](const vec3& ve) {
+                     [&](const glm::dvec3& ve) {
                        return ve != originalVertexData[selectedPoints.first] &&
                               ve != originalVertexData[selectedPoints.second] &&
                               ve != originalVertexData[thirdPoint];
@@ -734,7 +734,7 @@ void QuickHull::setupInitialTetrahedron() {
          logicErr("degenerate selectedPoints"));
   std::array<size_t, 3> baseTriangle{selectedPoints.first,
                                      selectedPoints.second, maxI};
-  const vec3 baseTriangleVertices[] = {originalVertexData[baseTriangle[0]],
+  const glm::dvec3 baseTriangleVertices[] = {originalVertexData[baseTriangle[0]],
                                        originalVertexData[baseTriangle[1]],
                                        originalVertexData[baseTriangle[2]]};
 
@@ -742,7 +742,7 @@ void QuickHull::setupInitialTetrahedron() {
   // the point farthest away from the triangle plane.
   maxD = m_epsilon;
   maxI = 0;
-  const vec3 N =
+  const glm::dvec3 N =
       getTriangleNormal(baseTriangleVertices[0], baseTriangleVertices[1],
                         baseTriangleVertices[2]);
   Plane trianglePlane(N, baseTriangleVertices[0]);
@@ -759,11 +759,11 @@ void QuickHull::setupInitialTetrahedron() {
     // Well, let's add one extra point to the point cloud so that the convex
     // hull will have volume.
     planar = true;
-    const vec3 N1 =
+    const glm::dvec3 N1 =
         getTriangleNormal(baseTriangleVertices[1], baseTriangleVertices[2],
                           baseTriangleVertices[0]);
-    planarPointCloudTemp = Vec<vec3>(originalVertexData);
-    const vec3 extraPoint = N1 + originalVertexData[0];
+    planarPointCloudTemp = Vec<glm::dvec3>(originalVertexData);
+    const glm::dvec3 extraPoint = N1 + originalVertexData[0];
     planarPointCloudTemp.push_back(extraPoint);
     maxI = planarPointCloudTemp.size() - 1;
     originalVertexData = planarPointCloudTemp;
@@ -781,7 +781,7 @@ void QuickHull::setupInitialTetrahedron() {
   mesh.setup(baseTriangle[0], baseTriangle[1], baseTriangle[2], maxI);
   for (auto& f : mesh.faces) {
     auto v = mesh.getVertexIndicesOfFace(f);
-    const vec3 N1 =
+    const glm::dvec3 N1 =
         getTriangleNormal(originalVertexData[v[0]], originalVertexData[v[1]],
                           originalVertexData[v[2]]);
     const Plane plane(N1, originalVertexData[v[0]]);
@@ -837,7 +837,7 @@ bool QuickHull::addPointToFace(typename MeshBuilder::Face& f,
 
 // Wrapper to call the QuickHull algorithm with the given vertex data to build
 // the Impl
-void Manifold::Impl::Hull(VecView<vec3> vertPos) {
+void Manifold::Impl::Hull(VecView<glm::dvec3> vertPos) {
   size_t numVert = vertPos.size();
   if (numVert < 4) {
     status_ = Error::InvalidConstruction;

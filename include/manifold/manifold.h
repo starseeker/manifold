@@ -183,18 +183,18 @@ class Manifold {
   static Manifold Smooth(const MeshGL64&,
                          const std::vector<Smoothness>& sharpenedEdges = {});
   static Manifold Tetrahedron();
-  static Manifold Cube(vec3 size = vec3(1.0), bool center = false);
+  static Manifold Cube(glm::dvec3 size = glm::dvec3(1.0), bool center = false);
   static Manifold Cylinder(double height, double radiusLow,
                            double radiusHigh = -1.0, int circularSegments = 0,
                            bool center = false);
   static Manifold Sphere(double radius, int circularSegments = 0);
   static Manifold Extrude(const Polygons& crossSection, double height,
                           int nDivisions = 0, double twistDegrees = 0.0,
-                          vec2 scaleTop = vec2(1.0));
+                          glm::dvec2 scaleTop = glm::dvec2(1.0));
   static Manifold Revolve(const Polygons& crossSection,
                           int circularSegments = 0,
                           double revolveDegrees = 360.0f);
-  static Manifold LevelSet(std::function<double(vec3)> sdf, Box bounds,
+  static Manifold LevelSet(std::function<double(glm::dvec3)> sdf, Box bounds,
                            double edgeLength, double level = 0,
                            double precision = -1, bool canParallel = true);
   ///@}
@@ -211,8 +211,8 @@ class Manifold {
    *  Details of the manifold
    */
   ///@{
-  MeshGL GetMeshGL(ivec3 normalIdx = ivec3(0)) const;
-  MeshGL64 GetMeshGL64(ivec3 normalIdx = ivec3(0)) const;
+  MeshGL GetMeshGL(glm::vec<3, int> normalIdx = glm::vec<3, int>(0)) const;
+  MeshGL64 GetMeshGL64(glm::vec<3, int> normalIdx = glm::vec<3, int>(0)) const;
   bool IsEmpty() const;
   enum class Error {
     NoError,
@@ -254,16 +254,16 @@ class Manifold {
   /** @name Modification
    */
   ///@{
-  Manifold Translate(vec3) const;
-  Manifold Scale(vec3) const;
+  Manifold Translate(glm::dvec3) const;
+  Manifold Scale(glm::dvec3) const;
   Manifold Rotate(double xDegrees, double yDegrees = 0.0,
                   double zDegrees = 0.0) const;
-  Manifold Transform(const mat4x3&) const;
-  Manifold Mirror(vec3) const;
-  Manifold Warp(std::function<void(vec3&)>) const;
-  Manifold WarpBatch(std::function<void(VecView<vec3>)>) const;
+  Manifold Transform(const glm::dmat4x3&) const;
+  Manifold Mirror(glm::dvec3) const;
+  Manifold Warp(std::function<void(glm::dvec3&)>) const;
+  Manifold WarpBatch(std::function<void(VecView<glm::dvec3>)>) const;
   Manifold SetProperties(
-      int, std::function<void(double*, vec3, const double*)>) const;
+      int, std::function<void(double*, glm::dvec3, const double*)>) const;
   Manifold CalculateCurvature(int gaussianIdx, int meanIdx) const;
   Manifold CalculateNormals(int normalIdx, double minSharpAngle = 60) const;
   Manifold SmoothByNormals(int normalIdx) const;
@@ -288,9 +288,9 @@ class Manifold {
   Manifold operator^(const Manifold&) const;  // Intersect
   Manifold& operator^=(const Manifold&);
   std::pair<Manifold, Manifold> Split(const Manifold&) const;
-  std::pair<Manifold, Manifold> SplitByPlane(vec3 normal,
+  std::pair<Manifold, Manifold> SplitByPlane(glm::dvec3 normal,
                                              double originOffset) const;
-  Manifold TrimByPlane(vec3 normal, double originOffset) const;
+  Manifold TrimByPlane(glm::dvec3 normal, double originOffset) const;
   ///@}
 
   /** @name 2D from 3D
@@ -305,7 +305,7 @@ class Manifold {
   ///@{
   Manifold Hull() const;
   static Manifold Hull(const std::vector<Manifold>& manifolds);
-  static Manifold Hull(const std::vector<vec3>& pts);
+  static Manifold Hull(const std::vector<glm::dvec3>& pts);
   ///@}
 
   /** @name Testing hooks

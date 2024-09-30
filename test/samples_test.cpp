@@ -108,12 +108,12 @@ TEST(Samples, Scallop) {
   }
 #endif
 
-  auto colorCurvature = [](double* newProp, vec3 pos, const double* oldProp) {
+  auto colorCurvature = [](double* newProp, glm::dvec3 pos, const double* oldProp) {
     const double curvature = oldProp[0];
-    const vec3 red(1, 0, 0);
-    const vec3 blue(0, 0, 1);
+    const glm::dvec3 red(1, 0, 0);
+    const glm::dvec3 blue(0, 0, 1);
     const double limit = 15;
-    vec3 color = glm::mix(blue, red, glm::smoothstep(-limit, limit, curvature));
+    glm::dvec3 color = glm::mix(blue, red, glm::smoothstep(-limit, limit, curvature));
     for (const int i : {0, 1, 2}) {
       newProp[i] = color[i];
     }
@@ -288,9 +288,9 @@ TEST(Samples, Sponge4) {
     options.mat.roughness = 0.2;
     options.mat.metalness = 1.0;
     for (size_t i = 0; i < out.vertProperties.size(); i += out.numProp) {
-      vec3 pos = {out.vertProperties[i], out.vertProperties[i + 1],
+      glm::dvec3 pos = {out.vertProperties[i], out.vertProperties[i + 1],
                   out.vertProperties[i + 2]};
-      options.mat.vertColor.push_back(vec4(0.5 * (pos + 0.5), 1.0));
+      options.mat.vertColor.push_back(glm::dvec4(0.5 * (pos + 0.5), 1.0));
     }
     ExportMesh("mengerSponge.glb", out, options);
   }

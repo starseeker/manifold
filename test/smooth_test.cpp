@@ -146,7 +146,7 @@ TEST(Smooth, Sphere) {
     double maxR2 = 0;
     double minR2 = 2;
     for (int v = 0; v < numVert; ++v) {
-      const vec3 a = out.GetVertPos(v);
+      const glm::dvec3 a = out.GetVertPos(v);
       const double r2 = dot(a, a);
       maxR2 = std::max(maxR2, r2);
       minR2 = std::min(minR2, r2);
@@ -169,8 +169,8 @@ TEST(Smooth, Precision) {
   double maxR2 = 0;
   double minR2 = 2 * radius * radius;
   for (int v = 0; v < numVert; ++v) {
-    const vec3 a = out.GetVertPos(v);
-    const vec2 a1(a);
+    const glm::dvec3 a = out.GetVertPos(v);
+    const glm::dvec2 a1(a);
     // Ignore end caps.
     const double r2 = (std::abs(a.z) < 0.001 || std::abs(a.z - height) < 0.001)
                           ? radius * radius
@@ -223,10 +223,10 @@ TEST(Smooth, Manual) {
 #ifdef MANIFOLD_EXPORT
   if (options.exportModels) {
     interp = interp.CalculateCurvature(-1, 0).SetProperties(
-        3, [](double* newProp, vec3 pos, const double* oldProp) {
-          const vec3 red(1, 0, 0);
-          const vec3 purple(1, 0, 1);
-          vec3 color =
+        3, [](double* newProp, glm::dvec3 pos, const double* oldProp) {
+          const glm::dvec3 red(1, 0, 0);
+          const glm::dvec3 purple(1, 0, 1);
+          glm::dvec3 color =
               glm::mix(purple, red, glm::smoothstep(0.0, 2.0, oldProp[0]));
           for (const int i : {0, 1, 2}) newProp[i] = color[i];
         });
@@ -272,11 +272,11 @@ TEST(Smooth, Csaszar) {
     options.mat.roughness = 0.1;
 
     options.mat.vertColor.resize(csaszar.NumVert());
-    const vec4 blue(0, 0, 1, 1);
-    const vec4 yellow(1, 1, 0, 1);
+    const glm::dvec4 blue(0, 0, 1, 1);
+    const glm::dvec4 yellow(1, 1, 0, 1);
     for (size_t tri = 0; tri < csaszar.NumTri(); ++tri) {
       for (int i : {0, 1, 2}) {
-        const vec3& uvw = {0.5, 0.5, 0.0};
+        const glm::dvec3& uvw = {0.5, 0.5, 0.0};
         const double alpha = std::min(uvw[0], std::min(uvw[1], uvw[2]));
         options.mat.vertColor[out.triVerts[3 * tri + i]] =
             glm::mix(yellow, blue, glm::smoothstep(0.0, 0.2, alpha));
@@ -287,19 +287,19 @@ TEST(Smooth, Csaszar) {
 #endif
 }
 
-vec4 CircularTangent(const vec3& tangent, const vec3& edgeVec) {
-  const vec3 dir = glm::normalize(tangent);
+glm::dvec4 CircularTangent(const glm::dvec3& tangent, const glm::dvec3& edgeVec) {
+  const glm::dvec3 dir = glm::normalize(tangent);
 
   double weight = std::abs(glm::dot(dir, glm::normalize(edgeVec)));
   if (weight == 0) {
     weight = 1;
   }
   // Quadratic weighted bezier for circular interpolation
-  const vec4 bz2 = weight * vec4(dir * glm::length(edgeVec) / (2 * weight), 1);
+  const glm::dvec4 bz2 = weight * glm::dvec4(dir * glm::length(edgeVec) / (2 * weight), 1);
   // Equivalent cubic weighted bezier
-  const vec4 bz3 = glm::mix(vec4(0, 0, 0, 1), bz2, 2 / 3.0);
+  const glm::dvec4 bz3 = glm::mix(glm::dvec4(0, 0, 0, 1), bz2, 2 / 3.0);
   // Convert from homogeneous form to geometric form
-  return vec4(vec3(bz3) / bz3.w, bz3.w);
+  return glm::dvec4(glm::dvec3(bz3) / bz3.w, bz3.w);
 }
 
 #ifdef MANIFOLD_CROSS_SECTION
@@ -317,21 +317,21 @@ TEST(Smooth, Torus) {
   for (int tri = 0; tri < numTri; ++tri) {
     const auto triVerts = torusMesh.GetTriVerts(tri);
     for (const int i : {0, 1, 2}) {
-      vec4 tangent;
-      const vec3 v = torusMesh.GetVertPos(triVerts[i]);
-      const vec3 v1 = torusMesh.GetVertPos(triVerts[(i + 1) % 3]);
-      const vec3 edge = v1 - v;
+      glm::dvec4 tangent;
+      const glm::dvec3 v = torusMesh.GetVertPos(triVerts[i]);
+      const glm::dvec3 v1 = torusMesh.GetVertPos(triVerts[(i + 1) % 3]);
+      const glm::dvec3 edge = v1 - v;
       if (edge.z == 0) {
-        vec3 tan(v.y, -v.x, 0);
+        glm::dvec3 tan(v.y, -v.x, 0);
         tan *= glm::sign(glm::dot(tan, edge));
         tangent = CircularTangent(tan, edge);
-      } else if (std::abs(glm::determinant(mat2(vec2(v), vec2(edge)))) <
+      } else if (std::abs(glm::determinant(glm::dmat2(glm::dvec2(v), glm::dvec2(edge)))) <
                  kTolerance) {
         const double theta = std::asin(v.z);
-        vec2 xy(v);
+        glm::dvec2 xy(v);
         const double r = glm::length(xy);
         xy = xy / r * v.z * (r > 2 ? -1.0 : 1.0);
-        vec3 tan(xy.x, xy.y, std::cos(theta));
+        glm::dvec3 tan(xy.x, xy.y, std::cos(theta));
         tan *= glm::sign(glm::dot(tan, edge));
         tangent = CircularTangent(tan, edge);
       } else {
@@ -350,9 +350,9 @@ TEST(Smooth, Torus) {
   MeshGL out = smooth.GetMeshGL();
   float maxMeanCurvature = 0;
   for (size_t i = 0; i < out.vertProperties.size(); i += 7) {
-    vec3 v(out.vertProperties[i], out.vertProperties[i + 1],
+    glm::dvec3 v(out.vertProperties[i], out.vertProperties[i + 1],
            out.vertProperties[i + 2]);
-    vec3 p(v.x, v.y, 0);
+    glm::dvec3 p(v.x, v.y, 0);
     p = glm::normalize(p) * 2.0;
     double r = glm::length(v - p);
     ASSERT_NEAR(r, 1, 0.006);
@@ -374,12 +374,12 @@ TEST(Smooth, Torus) {
 TEST(Smooth, SineSurface) {
   Manifold surface =
       Manifold::LevelSet(
-          [](vec3 p) {
+          [](glm::dvec3 p) {
             double mid = glm::sin(p.x) + glm::sin(p.y);
             return (p.z > mid - 0.5 && p.z < mid + 0.5) ? 1.0 : -1.0;
           },
-          {vec3(-2 * glm::pi<double>() + 0.2),
-           vec3(0 * glm::pi<double>() - 0.2)},
+          {glm::dvec3(-2 * glm::pi<double>() + 0.2),
+           glm::dvec3(0 * glm::pi<double>() - 0.2)},
           1)
           .AsOriginal();
 
@@ -430,30 +430,30 @@ TEST(Smooth, SDF) {
   const double r = 10;
   const double extra = 2;
 
-  auto sphericalGyroid = [r](vec3 p) {
+  auto sphericalGyroid = [r](glm::dvec3 p) {
     const double gyroid =
         cos(p.x) * sin(p.y) + cos(p.y) * sin(p.z) + cos(p.z) * sin(p.x);
     const double d = glm::min(0.0, r - glm::length(p));
     return gyroid - d * d / 2;
   };
 
-  auto gradient = [r](vec3 pos) {
+  auto gradient = [r](glm::dvec3 pos) {
     const double rad = glm::length(pos);
     const double d = glm::min(0.0, r - rad) / (rad > 0 ? rad : 1);
-    const vec3 sphereGrad = d * pos;
-    const vec3 gyroidGrad(cos(pos.z) * cos(pos.x) - sin(pos.x) * sin(pos.y),
+    const glm::dvec3 sphereGrad = d * pos;
+    const glm::dvec3 gyroidGrad(cos(pos.z) * cos(pos.x) - sin(pos.x) * sin(pos.y),
                           cos(pos.x) * cos(pos.y) - sin(pos.y) * sin(pos.z),
                           cos(pos.y) * cos(pos.z) - sin(pos.z) * sin(pos.x));
     return gyroidGrad + sphereGrad;
   };
 
-  auto error = [sphericalGyroid](double* newProp, vec3 pos,
+  auto error = [sphericalGyroid](double* newProp, glm::dvec3 pos,
                                  const double* oldProp) {
     newProp[0] = std::abs(sphericalGyroid(pos));
   };
 
   Manifold gyroid = Manifold::LevelSet(
-      sphericalGyroid, {vec3(-r - extra), vec3(r + extra)}, 0.5, 0, 0.00001);
+      sphericalGyroid, {glm::dvec3(-r - extra), glm::dvec3(r + extra)}, 0.5, 0, 0.00001);
 
   EXPECT_LT(gyroid.NumTri(), 76000);
 
@@ -463,8 +463,8 @@ TEST(Smooth, SDF) {
       gyroid
           .SetProperties(
               3,
-              [gradient](double* newProp, vec3 pos, const double* oldProp) {
-                const vec3 normal = -glm::normalize(gradient(pos));
+              [gradient](double* newProp, glm::dvec3 pos, const double* oldProp) {
+                const glm::dvec3 normal = -glm::normalize(gradient(pos));
                 for (const int i : {0, 1, 2}) newProp[i] = normal[i];
               })
           .SmoothByNormals(0)

@@ -86,7 +86,7 @@ class Pool {
 
 class Plane {
  public:
-  vec3 N;
+  glm::dvec3 N;
 
   // Signed distance (if normal is of length 1) to the plane from origin
   double D;
@@ -94,7 +94,7 @@ class Plane {
   // Normal length squared
   double sqrNLength;
 
-  bool isPointOnPositiveSide(const vec3& Q) const {
+  bool isPointOnPositiveSide(const glm::dvec3& Q) const {
     double d = glm::dot(N, Q) + D;
     if (d >= 0) return true;
     return false;
@@ -103,16 +103,16 @@ class Plane {
   Plane() = default;
 
   // Construct a plane using normal N and any point P on the plane
-  Plane(const vec3& N, const vec3& P)
+  Plane(const glm::dvec3& N, const glm::dvec3& P)
       : N(N), D(glm::dot(-N, P)), sqrNLength(glm::dot(N, N)) {}
 };
 
 struct Ray {
-  const vec3 S;
-  const vec3 V;
+  const glm::dvec3 S;
+  const glm::dvec3 V;
   const double VInvLengthSquared;
 
-  Ray(const vec3& S, const vec3& V)
+  Ray(const glm::dvec3& S, const glm::dvec3& V)
       : S(S), V(V), VInvLengthSquared(1 / (glm::dot(V, V))) {}
 };
 
@@ -199,7 +199,7 @@ class MeshBuilder {
 
 class HalfEdgeMesh {
  public:
-  Vec<vec3> vertices;
+  Vec<glm::dvec3> vertices;
   // Index of one of the half edges of the faces
   std::vector<size_t> halfEdgeIndexFaces;
   Vec<Halfedge> halfedges;
@@ -207,7 +207,7 @@ class HalfEdgeMesh {
   Vec<int> halfedgeNext;
 
   HalfEdgeMesh(const MeshBuilder& builderObject,
-               const VecView<vec3>& vertexData);
+               const VecView<glm::dvec3>& vertexData);
 };
 
 double defaultEps();
@@ -222,8 +222,8 @@ class QuickHull {
 
   double m_epsilon, epsilonSquared, scale;
   bool planar;
-  Vec<vec3> planarPointCloudTemp;
-  VecView<vec3> originalVertexData;
+  Vec<glm::dvec3> planarPointCloudTemp;
+  VecView<glm::dvec3> originalVertexData;
   MeshBuilder mesh;
   std::array<size_t, 6> extremeValues;
   size_t failedHorizonEdges = 0;
@@ -275,14 +275,14 @@ class QuickHull {
  public:
   // This function assumes that the pointCloudVec data resides in memory in the
   // following format: x_0,y_0,z_0,x_1,y_1,z_1,...
-  QuickHull(VecView<vec3> pointCloudVec)
+  QuickHull(VecView<glm::dvec3> pointCloudVec)
       : originalVertexData(VecView(pointCloudVec)) {}
 
   // Computes convex hull for a given point cloud. Params: eps: minimum distance
   // to a plane to consider a point being on positive side of it (for a point
   // cloud with scale 1) Returns: Convex hull of the point cloud as halfEdge
   // vector and vertex vector
-  std::pair<Vec<Halfedge>, Vec<vec3>> buildMesh(double eps = defaultEps());
+  std::pair<Vec<Halfedge>, Vec<glm::dvec3>> buildMesh(double eps = defaultEps());
 };
 
 }  // namespace manifold

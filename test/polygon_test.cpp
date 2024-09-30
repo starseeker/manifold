@@ -26,7 +26,7 @@ using namespace manifold;
 
 Polygons Turn180(Polygons polys) {
   for (SimplePolygon &poly : polys) {
-    for (vec2 &vert : poly) {
+    for (glm::dvec2 &vert : poly) {
       vert *= -1;
     }
   }
@@ -37,7 +37,7 @@ Polygons Duplicate(Polygons polys) {
   double xMin = std::numeric_limits<double>::infinity();
   double xMax = -std::numeric_limits<double>::infinity();
   for (SimplePolygon &poly : polys) {
-    for (vec2 &vert : poly) {
+    for (glm::dvec2 &vert : poly) {
       xMin = std::min(xMin, vert.x);
       xMax = std::max(xMax, vert.x);
     }
@@ -47,7 +47,7 @@ Polygons Duplicate(Polygons polys) {
   const int nPolys = polys.size();
   for (int i = 0; i < nPolys; ++i) {
     SimplePolygon poly = polys[i];
-    for (vec2 &vert : poly) {
+    for (glm::dvec2 &vert : poly) {
       vert.x += shift;
     }
     polys.push_back(poly);
@@ -59,7 +59,7 @@ void TestPoly(const Polygons &polys, int expectedNumTri,
               double precision = -1.0) {
   PolygonParams().verbose = options.params.verbose;
 
-  std::vector<ivec3> triangles;
+  std::vector<glm::vec<3, int>> triangles;
   EXPECT_NO_THROW(triangles = Triangulate(polys, precision));
   EXPECT_EQ(triangles.size(), expectedNumTri) << "Basic";
 

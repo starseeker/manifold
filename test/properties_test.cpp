@@ -28,7 +28,7 @@ TEST(Properties, GetProperties) {
   EXPECT_FLOAT_EQ(prop.volume, 1.0);
   EXPECT_FLOAT_EQ(prop.surfaceArea, 6.0);
 
-  cube = cube.Scale(vec3(-1.0));
+  cube = cube.Scale(glm::dvec3(-1.0));
   prop = cube.GetProperties();
   EXPECT_FLOAT_EQ(prop.volume, 1.0);
   EXPECT_FLOAT_EQ(prop.surfaceArea, 6.0);
@@ -86,7 +86,7 @@ TEST(Properties, CalculateCurvature) {
     EXPECT_NEAR(GetMinProperty(sphereGL, gaussianIdx), 1, precision);
     EXPECT_NEAR(GetMaxProperty(sphereGL, gaussianIdx), 1, precision);
 
-    sphere = sphere.Scale(vec3(2.0)).CalculateCurvature(gaussianIdx - 3,
+    sphere = sphere.Scale(glm::dvec3(2.0)).CalculateCurvature(gaussianIdx - 3,
                                                         meanIdx - 3);
     sphereGL = sphere.GetMeshGL();
     ASSERT_EQ(sphereGL.numProp, 5);
@@ -197,9 +197,9 @@ TEST(Properties, MinGapAfterTransformationsOutOfBounds) {
 }
 
 TEST(Properties, TriangleDistanceClosestPointsOnVertices) {
-  std::array<vec3, 3> p = {vec3{-1, 0, 0}, vec3{1, 0, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> p = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0, 0}, glm::dvec3{0, 1, 0}};
 
-  std::array<vec3, 3> q = {vec3{2, 0, 0}, vec3{4, 0, 0}, vec3{3, 1, 0}};
+  std::array<glm::dvec3, 3> q = {glm::dvec3{2, 0, 0}, glm::dvec3{4, 0, 0}, glm::dvec3{3, 1, 0}};
 
   float distance = DistanceTriangleTriangleSquared(p, q);
 
@@ -207,9 +207,9 @@ TEST(Properties, TriangleDistanceClosestPointsOnVertices) {
 }
 
 TEST(Properties, TriangleDistanceClosestPointOnEdge) {
-  std::array<vec3, 3> p = {vec3{-1, 0, 0}, vec3{1, 0, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> p = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0, 0}, glm::dvec3{0, 1, 0}};
 
-  std::array<vec3, 3> q = {vec3{-1, 2, 0}, vec3{1, 2, 0}, vec3{0, 3, 0}};
+  std::array<glm::dvec3, 3> q = {glm::dvec3{-1, 2, 0}, glm::dvec3{1, 2, 0}, glm::dvec3{0, 3, 0}};
 
   float distance = DistanceTriangleTriangleSquared(p, q);
 
@@ -217,9 +217,9 @@ TEST(Properties, TriangleDistanceClosestPointOnEdge) {
 }
 
 TEST(Properties, TriangleDistanceClosestPointOnEdge2) {
-  std::array<vec3, 3> p = {vec3{-1, 0, 0}, vec3{1, 0, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> p = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0, 0}, glm::dvec3{0, 1, 0}};
 
-  std::array<vec3, 3> q = {vec3{1, 1, 0}, vec3{3, 1, 0}, vec3{2, 2, 0}};
+  std::array<glm::dvec3, 3> q = {glm::dvec3{1, 1, 0}, glm::dvec3{3, 1, 0}, glm::dvec3{2, 2, 0}};
 
   float distance = DistanceTriangleTriangleSquared(p, q);
 
@@ -227,10 +227,10 @@ TEST(Properties, TriangleDistanceClosestPointOnEdge2) {
 }
 
 TEST(Properties, TriangleDistanceClosestPointOnFace) {
-  std::array<vec3, 3> p = {vec3{-1, 0, 0}, vec3{1, 0, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> p = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0, 0}, glm::dvec3{0, 1, 0}};
 
-  std::array<vec3, 3> q = {vec3{-1, 2, -0.5}, vec3{1, 2, -0.5},
-                           vec3{0, 2, 1.5}};
+  std::array<glm::dvec3, 3> q = {glm::dvec3{-1, 2, -0.5}, glm::dvec3{1, 2, -0.5},
+                           glm::dvec3{0, 2, 1.5}};
 
   float distance = DistanceTriangleTriangleSquared(p, q);
 
@@ -238,9 +238,9 @@ TEST(Properties, TriangleDistanceClosestPointOnFace) {
 }
 
 TEST(Properties, TriangleDistanceOverlapping) {
-  std::array<vec3, 3> p = {vec3{-1, 0, 0}, vec3{1, 0, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> p = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0, 0}, glm::dvec3{0, 1, 0}};
 
-  std::array<vec3, 3> q = {vec3{-1, 0, 0}, vec3{1, 0.5, 0}, vec3{0, 1, 0}};
+  std::array<glm::dvec3, 3> q = {glm::dvec3{-1, 0, 0}, glm::dvec3{1, 0.5, 0}, glm::dvec3{0, 1, 0}};
 
   float distance = DistanceTriangleTriangleSquared(p, q);
 

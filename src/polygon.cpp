@@ -29,8 +29,8 @@ static ExecutionParams params;
 
 constexpr double kBest = -std::numeric_limits<double>::infinity();
 
-// it seems that MSVC cannot optimize glm::determinant(mat2(a, b))
-constexpr double determinant2x2(vec2 a, vec2 b) {
+// it seems that MSVC cannot optimize glm::determinant(glm::dmat2(a, b))
+constexpr double determinant2x2(glm::dvec2 a, glm::dvec2 b) {
   return a.x * b.y - a.y * b.x;
 }
 
@@ -50,10 +50,10 @@ std::vector<PolyEdge> Polygons2Edges(const PolygonsIdx &polys) {
   return halfedges;
 }
 
-std::vector<PolyEdge> Triangles2Edges(const std::vector<ivec3> &triangles) {
+std::vector<PolyEdge> Triangles2Edges(const std::vector<glm::vec<3, int>> &triangles) {
   std::vector<PolyEdge> halfedges;
   halfedges.reserve(triangles.size() * 3);
-  for (const ivec3 &tri : triangles) {
+  for (const glm::vec<3, int> &tri : triangles) {
     halfedges.push_back({tri[0], tri[1]});
     halfedges.push_back({tri[1], tri[2]});
     halfedges.push_back({tri[2], tri[0]});
@@ -96,7 +96,7 @@ void CheckTopology(const std::vector<PolyEdge> &halfedges) {
   }
 }
 
-void CheckTopology(const std::vector<ivec3> &triangles,
+void CheckTopology(const std::vector<glm::vec<3, int>> &triangles,
                    const PolygonsIdx &polys) {
   std::vector<PolyEdge> halfedges = Triangles2Edges(triangles);
   std::vector<PolyEdge> openEdges = Polygons2Edges(polys);
@@ -106,16 +106,16 @@ void CheckTopology(const std::vector<ivec3> &triangles,
   CheckTopology(halfedges);
 }
 
-void CheckGeometry(const std::vector<ivec3> &triangles,
+void CheckGeometry(const std::vector<glm::vec<3, int>> &triangles,
                    const PolygonsIdx &polys, double precision) {
-  std::unordered_map<int, vec2> vertPos;
+  std::unordered_map<int, glm::dvec2> vertPos;
   for (const auto &poly : polys) {
     for (size_t i = 0; i < poly.size(); ++i) {
       vertPos[poly[i].idx] = poly[i].pos;
     }
   }
   DEBUG_ASSERT(std::all_of(triangles.begin(), triangles.end(),
-                           [&vertPos, precision](const ivec3 &tri) {
+                           [&vertPos, precision](const glm::vec<3, int> &tri) {
                              return CCW(vertPos[tri[0]], vertPos[tri[1]],
                                         vertPos[tri[2]], precision) >= 0;
                            }),
@@ -141,7 +141,7 @@ void Dump(const PolygonsIdx &polys, double precision) {
 }
 
 void PrintFailure(const std::exception &e, const PolygonsIdx &polys,
-                  std::vector<ivec3> &triangles, double precision) {
+                  std::vector<glm::vec<3, int>> &triangles, double precision) {
   std::cout << "-----------------------------------" << std::endl;
   std::cout << "Triangulation failed! Precision = " << precision << std::endl;
   std::cout << e.what() << std::endl;
@@ -171,13 +171,13 @@ void PrintFailure(const std::exception &e, const PolygonsIdx &polys,
  */
 bool IsConvex(const PolygonsIdx &polys, double precision) {
   for (const SimplePolygonIdx &poly : polys) {
-    const vec2 firstEdge = poly[0].pos - poly[poly.size() - 1].pos;
+    const glm::dvec2 firstEdge = poly[0].pos - poly[poly.size() - 1].pos;
     // Zero-length edges comes out NaN, which won't trip the early return, but
     // it's okay because that zero-length edge will also get tested
     // non-normalized and will trip det == 0.
-    vec2 lastEdge = glm::normalize(firstEdge);
+    glm::dvec2 lastEdge = glm::normalize(firstEdge);
     for (size_t v = 0; v < poly.size(); ++v) {
-      const vec2 edge =
+      const glm::dvec2 edge =
           v + 1 < poly.size() ? poly[v + 1].pos - poly[v].pos : firstEdge;
       const double det = determinant2x2(lastEdge, edge);
       if (det <= 0 ||
@@ -193,12 +193,12 @@ bool IsConvex(const PolygonsIdx &polys, double precision) {
  * Triangulates a set of convex polygons by alternating instead of a fan, to
  * avoid creating high-degree vertices.
  */
-std::vector<ivec3> TriangulateConvex(const PolygonsIdx &polys) {
+std::vector<glm::vec<3, int>> TriangulateConvex(const PolygonsIdx &polys) {
   const size_t numTri = manifold::transform_reduce(
       polys.begin(), polys.end(), 0_uz,
       [](size_t a, size_t b) { return a + b; },
       [](const SimplePolygonIdx &poly) { return poly.size() - 2; });
-  std::vector<ivec3> triangles;
+  std::vector<glm::vec<3, int>> triangles;
   triangles.reserve(numTri);
   for (const SimplePolygonIdx &poly : polys) {
     size_t i = 0;
@@ -254,7 +254,7 @@ class EarClip {
     }
   }
 
-  std::vector<ivec3> Triangulate() {
+  std::vector<glm::vec<3, int>> Triangulate() {
     ZoneScoped;
 
     for (const VertItr start : holes_) {
@@ -299,7 +299,7 @@ class EarClip {
   // A priority queue of valid ears - the multiset allows them to be updated.
   std::multiset<VertItr, MinCost> earsQueue_;
   // The output triangulation.
-  std::vector<ivec3> triangles_;
+  std::vector<glm::vec<3, int>> triangles_;
   // Bounding box of the entire set of polygons
   Rect bBox_;
   // Working precision: max of float error and input value.
@@ -317,21 +317,21 @@ class EarClip {
     int mesh_idx;
     double cost;
     qItr ear;
-    vec2 pos, rightDir;
+    glm::dvec2 pos, rightDir;
     VertItr left, right;
 
     // Shorter than half of precision, to be conservative so that it doesn't
     // cause CW triangles that exceed precision due to rounding error.
     bool IsShort(double precision) const {
-      const vec2 edge = right->pos - pos;
+      const glm::dvec2 edge = right->pos - pos;
       return glm::dot(edge, edge) * 4 < precision * precision;
     }
 
     // Like CCW, returns 1 if v is on the inside of the angle formed at this
     // vert, -1 on the outside, and 0 if it's within precision of the boundary.
     // Ensure v is more than precision from pos, as case this will not return 0.
-    int Interior(vec2 v, double precision) const {
-      const vec2 diff = v - pos;
+    int Interior(glm::dvec2 v, double precision) const {
+      const glm::dvec2 diff = v - pos;
       if (glm::dot(diff, diff) < precision * precision) {
         return 0;
       }
@@ -354,21 +354,21 @@ class EarClip {
 
       while (nextL != nextR && tail != nextR &&
              nextL != (toLeft ? right : left)) {
-        const vec2 edgeL = nextL->pos - center->pos;
+        const glm::dvec2 edgeL = nextL->pos - center->pos;
         const double l2 = glm::dot(edgeL, edgeL);
         if (l2 <= p2) {
           nextL = toLeft ? nextL->left : nextL->right;
           continue;
         }
 
-        const vec2 edgeR = nextR->pos - center->pos;
+        const glm::dvec2 edgeR = nextR->pos - center->pos;
         const double r2 = glm::dot(edgeR, edgeR);
         if (r2 <= p2) {
           nextR = nextR->right;
           continue;
         }
 
-        const vec2 vecLR = nextR->pos - nextL->pos;
+        const glm::dvec2 vecLR = nextR->pos - nextL->pos;
         const double lr2 = glm::dot(vecLR, vecLR);
         if (lr2 <= p2) {
           last = center;
@@ -426,7 +426,7 @@ class EarClip {
     // returning NAN if the edge does not cross the value from below to above,
     // right of start - all within a precision tolerance. If onTop != 0, this
     // restricts which end is allowed to terminate within the precision band.
-    double InterpY2X(vec2 start, int onTop, double precision) const {
+    double InterpY2X(glm::dvec2 start, int onTop, double precision) const {
       if (glm::abs(pos.y - start.y) <= precision) {
         if (right->pos.y <= start.y + precision || onTop == 1) {
           return NAN;
@@ -451,7 +451,7 @@ class EarClip {
     // of the ear. Points are valid even when they touch, so long as their edge
     // goes to the outside. No need to check the other side, since all verts are
     // processed in the EarCost loop.
-    double SignedDist(VertItr v, vec2 unit, double precision) const {
+    double SignedDist(VertItr v, glm::dvec2 unit, double precision) const {
       double d = determinant2x2(unit, v->pos - pos);
       if (std::abs(d) < precision) {
         double dR = determinant2x2(unit, v->right->pos - pos);
@@ -464,7 +464,7 @@ class EarClip {
 
     // Find the cost of Vert v within this ear, where openSide is the unit
     // vector from Verts right to left - passed in for reuse.
-    double Cost(VertItr v, vec2 openSide, double precision) const {
+    double Cost(VertItr v, glm::dvec2 openSide, double precision) const {
       double cost = std::min(SignedDist(v, rightDir, precision),
                              SignedDist(v, left->rightDir, precision));
 
@@ -475,7 +475,7 @@ class EarClip {
     // For verts outside the ear, apply a cost based on the Delaunay condition
     // to aid in prioritization and produce cleaner triangulations. This doesn't
     // affect robustness, but may be adjusted to improve output.
-    static double DelaunayCost(vec2 diff, double scale, double precision) {
+    static double DelaunayCost(glm::dvec2 diff, double scale, double precision) {
       return -precision - scale * glm::dot(diff, diff);
     }
 
@@ -490,8 +490,8 @@ class EarClip {
     // totalCost is designed to give priority to sharper angles. Any cost < (-1
     // - precision) has satisfied the Delaunay condition.
     double EarCost(double precision, const IdxCollider &collider) const {
-      vec2 openSide = left->pos - right->pos;
-      const vec2 center = 0.5 * (left->pos + right->pos);
+      glm::dvec2 openSide = left->pos - right->pos;
+      const glm::dvec2 center = 0.5 * (left->pos + right->pos);
       const double scale = 4 / glm::dot(openSide, openSide);
       const double radius = glm::length(openSide) / 2;
       openSide = glm::normalize(openSide);
@@ -503,9 +503,9 @@ class EarClip {
       }
 
       Vec<Box> earBox;
-      earBox.push_back({vec3(center.x - radius, center.y - radius, 0),
-                        vec3(center.x + radius, center.y + radius, 0)});
-      earBox.back().Union(vec3(pos, 0));
+      earBox.push_back({glm::dvec3(center.x - radius, center.y - radius, 0),
+                        glm::dvec3(center.x + radius, center.y + radius, 0)});
+      earBox.back().Union(glm::dvec3(pos, 0));
       const SparseIndices toTest = collider.collider.Collisions(earBox.cview());
 
       const int lid = left->mesh_idx;
@@ -536,9 +536,9 @@ class EarClip {
     }
   };
 
-  static vec2 SafeNormalize(vec2 v) {
-    vec2 n = glm::normalize(v);
-    return std::isfinite(n.x) ? n : vec2(0, 0);
+  static glm::dvec2 SafeNormalize(glm::dvec2 v) {
+    glm::dvec2 n = glm::normalize(v);
+    return std::isfinite(n.x) ? n : glm::dvec2(0, 0);
   }
 
   // This function and JoinPolygons are the only functions that affect the
@@ -653,7 +653,7 @@ class EarClip {
   // Find the actual rightmost starts after degenerate removal. Also calculate
   // the polygon bounding boxes.
   void FindStart(VertItr first) {
-    const vec2 origin = first->pos;
+    const glm::dvec2 origin = first->pos;
 
     VertItr start = first;
     double maxX = -std::numeric_limits<double>::infinity();
@@ -682,7 +682,7 @@ class EarClip {
     }
 
     area += areaCompensation;
-    const vec2 size = bBox.Size();
+    const glm::dvec2 size = bBox.Size();
     const double minArea = precision_ * std::max(size.x, size.y);
 
     if (std::isfinite(maxX) && area < -minArea) {
@@ -822,11 +822,11 @@ class EarClip {
     Vec<Box> vertBox;
     Vec<uint32_t> vertMorton;
     std::vector<VertItr> itr;
-    const Box box(vec3(bBox_.min, 0), vec3(bBox_.max, 0));
+    const Box box(glm::dvec3(bBox_.min, 0), glm::dvec3(bBox_.max, 0));
 
     Loop(start, [&vertBox, &vertMorton, &itr, &box, this](VertItr v) {
       itr.push_back(v);
-      const vec3 pos(v->pos, 0);
+      const glm::dvec3 pos(v->pos, 0);
       vertBox.push_back({pos - precision_, pos + precision_});
       vertMorton.push_back(Collider::MortonCode(pos, box));
     });
@@ -940,11 +940,11 @@ namespace manifold {
  * references back to the original vertices.
  * @param precision The value of &epsilon;, bounding the uncertainty of the
  * input.
- * @return std::vector<ivec3> The triangles, referencing the original
+ * @return std::vector<glm::vec<3, int>> The triangles, referencing the original
  * vertex indicies.
  */
-std::vector<ivec3> TriangulateIdx(const PolygonsIdx &polys, double precision) {
-  std::vector<ivec3> triangles;
+std::vector<glm::vec<3, int>> TriangulateIdx(const PolygonsIdx &polys, double precision) {
+  std::vector<glm::vec<3, int>> triangles;
   double updatedPrecision = precision;
 #ifdef MANIFOLD_EXCEPTIONS
   try {
@@ -989,15 +989,15 @@ std::vector<ivec3> TriangulateIdx(const PolygonsIdx &polys, double precision) {
  * polygons and/or holes.
  * @param precision The value of &epsilon;, bounding the uncertainty of the
  * input.
- * @return std::vector<ivec3> The triangles, referencing the original
+ * @return std::vector<glm::vec<3, int>> The triangles, referencing the original
  * polygon points in order.
  */
-std::vector<ivec3> Triangulate(const Polygons &polygons, double precision) {
+std::vector<glm::vec<3, int>> Triangulate(const Polygons &polygons, double precision) {
   int idx = 0;
   PolygonsIdx polygonsIndexed;
   for (const auto &poly : polygons) {
     SimplePolygonIdx simpleIndexed;
-    for (const vec2 &polyVert : poly) {
+    for (const glm::dvec2 &polyVert : poly) {
       simpleIndexed.push_back({polyVert, idx++});
     }
     polygonsIndexed.push_back(simpleIndexed);

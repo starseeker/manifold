@@ -43,7 +43,7 @@ TEST(CrossSection, MirrorUnion) {
 #endif
 
   EXPECT_FLOAT_EQ(2.5 * a.Area(), cross.Area());
-  EXPECT_TRUE(a.Mirror(vec2(0)).IsEmpty());
+  EXPECT_TRUE(a.Mirror(glm::dvec2(0)).IsEmpty());
 }
 
 TEST(CrossSection, RoundOffset) {
@@ -88,17 +88,17 @@ TEST(CrossSection, Transform) {
   auto sq = CrossSection::Square({10., 10.});
   auto a = sq.Rotate(45).Scale({2, 3}).Translate({4, 5});
 
-  mat3 trans(1.0, 0.0, 0.0,  //
+  glm::dmat3 trans(1.0, 0.0, 0.0,  //
              0.0, 1.0, 0.0,  //
              4.0, 5.0, 1.0);
-  mat3 rot(cosd(45), sind(45), 0.0,   //
+  glm::dmat3 rot(cosd(45), sind(45), 0.0,   //
            -sind(45), cosd(45), 0.0,  //
            0.0, 0.0, 1.0);
-  mat3 scale(2.0, 0.0, 0.0,  //
+  glm::dmat3 scale(2.0, 0.0, 0.0,  //
              0.0, 3.0, 0.0,  //
              0.0, 0.0, 1.0);
 
-  auto b = sq.Transform(mat3x2(trans * scale * rot));
+  auto b = sq.Transform(glm::dmat3x2(trans * scale * rot));
   auto b_copy = CrossSection(b);
 
   auto ex_b = Manifold::Extrude(b.ToPolygons(), 1.).GetMeshGL();
@@ -111,7 +111,7 @@ TEST(CrossSection, Transform) {
 TEST(CrossSection, Warp) {
   auto sq = CrossSection::Square({10., 10.});
   auto a = sq.Scale({2, 3}).Translate({4, 5});
-  auto b = sq.Warp([](vec2 &v) {
+  auto b = sq.Warp([](glm::dvec2 &v) {
     v.x = v.x * 2 + 4;
     v.y = v.y * 3 + 5;
   });
@@ -188,10 +188,10 @@ TEST(CrossSection, HullError) {
   auto rounded_rectangle = [](double x, double y, double radius, int segments) {
     auto circ = CrossSection::Circle(radius, segments);
     std::vector<CrossSection> vl{};
-    vl.push_back(circ.Translate(vec2{radius, radius}));
-    vl.push_back(circ.Translate(vec2{x - radius, radius}));
-    vl.push_back(circ.Translate(vec2{x - radius, y - radius}));
-    vl.push_back(circ.Translate(vec2{radius, y - radius}));
+    vl.push_back(circ.Translate(glm::dvec2{radius, radius}));
+    vl.push_back(circ.Translate(glm::dvec2{x - radius, radius}));
+    vl.push_back(circ.Translate(glm::dvec2{x - radius, y - radius}));
+    vl.push_back(circ.Translate(glm::dvec2{radius, y - radius}));
     return CrossSection::Hull(vl);
   };
   auto rr = rounded_rectangle(51, 36, 9.0, 36);

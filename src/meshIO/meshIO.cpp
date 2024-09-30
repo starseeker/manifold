@@ -45,7 +45,7 @@ aiScene* CreateScene(const ExportOptions& options) {
   aiMaterial* material = scene->mMaterials[0];
   material->AddProperty(&options.mat.roughness, 1, AI_MATKEY_ROUGHNESS_FACTOR);
   material->AddProperty(&options.mat.metalness, 1, AI_MATKEY_METALLIC_FACTOR);
-  const vec4& color = options.mat.color;
+  const glm::dvec4& color = options.mat.color;
   aiColor4D baseColor(color.r, color.g, color.b, color.a);
   material->AddProperty(&baseColor, 1, AI_MATKEY_COLOR_DIFFUSE);
 
@@ -222,12 +222,12 @@ void ExportMesh(const std::string& filename, const MeshGL& mesh,
   if (hasColor) mesh_out->mColors[0] = new aiColor4D[mesh_out->mNumVertices];
 
   for (size_t i = 0; i < mesh_out->mNumVertices; ++i) {
-    vec3 v;
+    glm::dvec3 v;
     for (int j : {0, 1, 2}) v[j] = mesh.vertProperties[i * mesh.numProp + j];
     mesh_out->mVertices[i] =
         isYup ? aiVector3D(v.y, v.z, v.x) : aiVector3D(v.x, v.y, v.z);
     if (!options.faceted) {
-      vec3 n;
+      glm::dvec3 n;
       for (int j : {0, 1, 2})
         n[j] = mesh.vertProperties[i * mesh.numProp +
                                    options.mat.normalChannels[j]];
@@ -235,7 +235,7 @@ void ExportMesh(const std::string& filename, const MeshGL& mesh,
           isYup ? aiVector3D(n.y, n.z, n.x) : aiVector3D(n.x, n.y, n.z);
     }
     if (hasColor) {
-      vec4 c;
+      glm::dvec4 c;
       for (int j : {0, 1, 2, 3})
         c[j] = options.mat.colorChannels[j] < 0
                    ? 1

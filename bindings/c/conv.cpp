@@ -114,11 +114,11 @@ ManifoldRect *to_c(manifold::Rect *m) {
   return reinterpret_cast<ManifoldRect *>(m);
 }
 
-ManifoldVec2 to_c(vec2 v) { return {v.x, v.y}; }
+ManifoldVec2 to_c(glm::dvec2 v) { return {v.x, v.y}; }
 
-ManifoldVec3 to_c(vec3 v) { return {v.x, v.y, v.z}; }
+ManifoldVec3 to_c(glm::dvec3 v) { return {v.x, v.y, v.z}; }
 
-ManifoldIVec3 to_c(ivec3 v) { return {v.x, v.y, v.z}; }
+ManifoldIVec3 to_c(glm::vec<3, int> v) { return {v.x, v.y, v.z}; }
 
 ManifoldProperties to_c(manifold::Properties p) {
   return {p.surfaceArea, p.volume};
@@ -208,32 +208,32 @@ const manifold::Rect *from_c(ManifoldRect *m) {
   return reinterpret_cast<manifold::Rect const *>(m);
 }
 
-vec2 from_c(ManifoldVec2 v) { return vec2(v.x, v.y); }
+glm::dvec2 from_c(ManifoldVec2 v) { return glm::dvec2(v.x, v.y); }
 
-vec3 from_c(ManifoldVec3 v) { return vec3(v.x, v.y, v.z); }
+glm::dvec3 from_c(ManifoldVec3 v) { return glm::dvec3(v.x, v.y, v.z); }
 
-ivec3 from_c(ManifoldIVec3 v) { return ivec3(v.x, v.y, v.z); }
+glm::vec<3, int> from_c(ManifoldIVec3 v) { return glm::vec<3, int>(v.x, v.y, v.z); }
 
-vec4 from_c(ManifoldVec4 v) { return vec4(v.x, v.y, v.z, v.w); }
+glm::dvec4 from_c(ManifoldVec4 v) { return glm::dvec4(v.x, v.y, v.z, v.w); }
 
-std::vector<vec3> vector_of_vec_array(ManifoldVec3 *vs, size_t length) {
-  auto vec = std::vector<vec3>();
+std::vector<glm::dvec3> vector_of_vec_array(ManifoldVec3 *vs, size_t length) {
+  auto vec = std::vector<glm::dvec3>();
   for (size_t i = 0; i < length; ++i) {
     vec.push_back(from_c(vs[i]));
   }
   return vec;
 }
 
-std::vector<ivec3> vector_of_vec_array(ManifoldIVec3 *vs, size_t length) {
-  auto vec = std::vector<ivec3>();
+std::vector<glm::vec<3, int>> vector_of_vec_array(ManifoldIVec3 *vs, size_t length) {
+  auto vec = std::vector<glm::vec<3, int>>();
   for (size_t i = 0; i < length; ++i) {
     vec.push_back(from_c(vs[i]));
   }
   return vec;
 }
 
-std::vector<vec4> vector_of_vec_array(ManifoldVec4 *vs, size_t length) {
-  auto vec = std::vector<vec4>();
+std::vector<glm::dvec4> vector_of_vec_array(ManifoldVec4 *vs, size_t length) {
+  auto vec = std::vector<glm::dvec4>();
   for (size_t i = 0; i < length; ++i) {
     vec.push_back(from_c(vs[i]));
   }

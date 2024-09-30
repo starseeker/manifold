@@ -23,19 +23,19 @@ using namespace manifold;
 
 struct FaceAreaVolume {
   VecView<const Halfedge> halfedges;
-  VecView<const vec3> vertPos;
+  VecView<const glm::dvec3> vertPos;
   const double precision;
 
   std::pair<double, double> operator()(int face) {
     double perimeter = 0;
-    vec3 edge[3];
+    glm::dvec3 edge[3];
     for (int i : {0, 1, 2}) {
       const int j = (i + 1) % 3;
       edge[i] = vertPos[halfedges[3 * face + j].startVert] -
                 vertPos[halfedges[3 * face + i].startVert];
       perimeter += glm::length(edge[i]);
     }
-    vec3 crossP = glm::cross(edge[0], edge[1]);
+    glm::dvec3 crossP = glm::cross(edge[0], edge[1]);
 
     double area = glm::length(crossP);
     double volume = glm::dot(crossP, vertPos[halfedges[3 * face].startVert]);
@@ -50,12 +50,12 @@ struct CurvatureAngles {
   VecView<double> area;
   VecView<double> degree;
   VecView<const Halfedge> halfedge;
-  VecView<const vec3> vertPos;
-  VecView<const vec3> triNormal;
+  VecView<const glm::dvec3> vertPos;
+  VecView<const glm::dvec3> triNormal;
 
   void operator()(size_t tri) {
-    vec3 edge[3];
-    vec3 edgeLength(0.0);
+    glm::dvec3 edge[3];
+    glm::dvec3 edgeLength(0.0);
     for (int i : {0, 1, 2}) {
       const int startVert = halfedge[3 * tri + i].startVert;
       const int endVert = halfedge[3 * tri + i].endVert;
@@ -72,7 +72,7 @@ struct CurvatureAngles {
       AtomicAdd(degree[startVert], 1.0);
     }
 
-    vec3 phi;
+    glm::dvec3 phi;
     phi[0] = std::acos(-glm::dot(edge[2], edge[0]));
     phi[1] = std::acos(-glm::dot(edge[0], edge[1]));
     phi[2] = glm::pi<double>() - phi[0] - phi[1];
@@ -88,7 +88,7 @@ struct CurvatureAngles {
 };
 
 struct UpdateProperties {
-  VecView<ivec3> triProp;
+  VecView<glm::vec<3, int>> triProp;
   VecView<double> properties;
 
   VecView<const double> oldProperties;
@@ -126,7 +126,7 @@ struct UpdateProperties {
 
 struct CheckHalfedges {
   VecView<const Halfedge> halfedges;
-  VecView<const vec3> vertPos;
+  VecView<const glm::dvec3> vertPos;
 
   bool operator()(size_t edge) const {
     const Halfedge halfedge = halfedges[edge];
@@ -148,15 +148,15 @@ struct CheckHalfedges {
 
 struct CheckCCW {
   VecView<const Halfedge> halfedges;
-  VecView<const vec3> vertPos;
-  VecView<const vec3> triNormal;
+  VecView<const glm::dvec3> vertPos;
+  VecView<const glm::dvec3> triNormal;
   const double tol;
 
   bool operator()(size_t face) const {
     if (halfedges[3 * face].pairedHalfedge < 0) return true;
 
-    const mat3x2 projection = GetAxisAlignedProjection(triNormal[face]);
-    vec2 v[3];
+    const glm::dmat3x2 projection = GetAxisAlignedProjection(triNormal[face]);
+    glm::dvec2 v[3];
     for (int i : {0, 1, 2})
       v[i] = projection * vertPos[halfedges[3 * face + i].startVert];
 
@@ -165,15 +165,15 @@ struct CheckCCW {
 
 #ifdef MANIFOLD_DEBUG
     if (tol > 0 && !check) {
-      vec2 v1 = v[1] - v[0];
-      vec2 v2 = v[2] - v[0];
+      glm::dvec2 v1 = v[1] - v[0];
+      glm::dvec2 v2 = v[2] - v[0];
       double area = v1.x * v2.y - v1.y * v2.x;
       double base2 = std::max(glm::dot(v1, v1), glm::dot(v2, v2));
       double base = std::sqrt(base2);
-      vec3 V0 = vertPos[halfedges[3 * face].startVert];
-      vec3 V1 = vertPos[halfedges[3 * face + 1].startVert];
-      vec3 V2 = vertPos[halfedges[3 * face + 2].startVert];
-      vec3 norm = glm::cross(V1 - V0, V2 - V0);
+      glm::dvec3 V0 = vertPos[halfedges[3 * face].startVert];
+      glm::dvec3 V1 = vertPos[halfedges[3 * face + 1].startVert];
+      glm::dvec3 V2 = vertPos[halfedges[3 * face + 2].startVert];
+      glm::dvec3 norm = glm::cross(V1 - V0, V2 - V0);
       printf(
           "Tri %ld does not match normal, approx height = %g, base = %g\n"
           "tol = %g, area2 = %g, base2*tol2 = %g\n"
@@ -311,13 +311,13 @@ void Manifold::Impl::CalculateCurvature(int gaussianIdx, int meanIdx) {
 void Manifold::Impl::CalculateBBox() {
   bBox_.min =
       reduce(vertPos_.begin(), vertPos_.end(),
-             vec3(std::numeric_limits<double>::infinity()), [](auto a, auto b) {
+             glm::dvec3(std::numeric_limits<double>::infinity()), [](auto a, auto b) {
                if (isnan(a.x)) return b;
                if (isnan(b.x)) return a;
                return glm::min(a, b);
              });
   bBox_.max = reduce(vertPos_.begin(), vertPos_.end(),
-                     vec3(-std::numeric_limits<double>::infinity()),
+                     glm::dvec3(-std::numeric_limits<double>::infinity()),
                      [](auto a, auto b) {
                        if (isnan(a.x)) return b;
                        if (isnan(b.x)) return a;
@@ -340,17 +340,17 @@ bool Manifold::Impl::IsFinite() const {
  * Checks that the input triVerts array has all indices inside bounds of the
  * vertPos_ array.
  */
-bool Manifold::Impl::IsIndexInBounds(VecView<const ivec3> triVerts) const {
-  ivec2 minmax = transform_reduce(
+bool Manifold::Impl::IsIndexInBounds(VecView<const glm::vec<3, int>> triVerts) const {
+  glm::vec<2, int> minmax = transform_reduce(
       triVerts.begin(), triVerts.end(),
-      ivec2(std::numeric_limits<int>::max(), std::numeric_limits<int>::min()),
+      glm::vec<2, int>(std::numeric_limits<int>::max(), std::numeric_limits<int>::min()),
       [](auto a, auto b) {
         a[0] = std::min(a[0], b[0]);
         a[1] = std::max(a[1], b[1]);
         return a;
       },
       [](auto tri) {
-        return ivec2(std::min(tri[0], std::min(tri[1], tri[2])),
+        return glm::vec<2, int>(std::min(tri[0], std::min(tri[1], tri[2])),
                      std::max(tri[0], std::max(tri[1], tri[2])));
       });
 
@@ -371,8 +371,8 @@ double Manifold::Impl::MinGap(const Manifold::Impl& other,
 
   transform(faceBoxOther.begin(), faceBoxOther.end(), faceBoxOther.begin(),
             [searchLength](const Box& box) {
-              return Box(box.min - vec3(searchLength),
-                         box.max + vec3(searchLength));
+              return Box(box.min - glm::dvec3(searchLength),
+                         box.max + glm::dvec3(searchLength));
             });
 
   SparseIndices collisions = collider_.Collisions(faceBoxOther.cview());
@@ -384,8 +384,8 @@ double Manifold::Impl::MinGap(const Manifold::Impl& other,
         const int tri = collisions.Get(i, 1);
         const int triOther = collisions.Get(i, 0);
 
-        std::array<vec3, 3> p;
-        std::array<vec3, 3> q;
+        std::array<glm::dvec3, 3> p;
+        std::array<glm::dvec3, 3> q;
 
         for (const int j : {0, 1, 2}) {
           p[j] = vertPos_[halfedge_[3 * tri + j].startVert];

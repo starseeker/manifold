@@ -34,12 +34,12 @@ bool isMeshConvex(Manifold hullManifold, double epsilon = 0.0000001) {
   for (size_t t = 0; t < numTri; ++t) {
     // Get the vertices of the triangle
     auto tri = mesh.GetTriVerts(t);
-    vec3 v0 = mesh.GetVertPos(tri[0]);
-    vec3 v1 = mesh.GetVertPos(tri[1]);
-    vec3 v2 = mesh.GetVertPos(tri[2]);
+    glm::dvec3 v0 = mesh.GetVertPos(tri[0]);
+    glm::dvec3 v1 = mesh.GetVertPos(tri[1]);
+    glm::dvec3 v2 = mesh.GetVertPos(tri[2]);
 
     // Compute the normal of the triangle
-    vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+    glm::dvec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
 
     // Check all other vertices
     for (size_t i = 0; i < numVert; ++i) {
@@ -47,7 +47,7 @@ bool isMeshConvex(Manifold hullManifold, double epsilon = 0.0000001) {
         continue;  // Skip vertices of the current triangle
 
       // Get the vertex
-      vec3 v = mesh.GetVertPos(i);
+      glm::dvec3 v = mesh.GetVertPos(i);
 
       // Compute the signed distance from the plane
       double distance = glm::dot(normal, v - v0);
@@ -92,7 +92,7 @@ TEST(Hull, Hollow) {
 }
 
 TEST(Hull, Cube) {
-  std::vector<vec3> cubePts = {
+  std::vector<glm::dvec3> cubePts = {
       {0, 0, 0},       {1, 0, 0},   {0, 1, 0},      {0, 0, 1},  // corners
       {1, 1, 0},       {0, 1, 1},   {1, 0, 1},      {1, 1, 1},  // corners
       {0.5, 0.5, 0.5}, {0.5, 0, 0}, {0.5, 0.7, 0.2}  // internal points
@@ -102,10 +102,10 @@ TEST(Hull, Cube) {
 }
 
 TEST(Hull, Empty) {
-  const std::vector<vec3> tooFew{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
+  const std::vector<glm::dvec3> tooFew{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
   EXPECT_TRUE(Manifold::Hull(tooFew).AsOriginal().IsEmpty());
 
-  const std::vector<vec3> coplanar{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}};
+  const std::vector<glm::dvec3> coplanar{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}};
   EXPECT_TRUE(Manifold::Hull(coplanar).AsOriginal().IsEmpty());
 }
 
@@ -120,7 +120,7 @@ TEST(Hull, MengerSponge) {
 
 TEST(Hull, Sphere) {
   Manifold sphere = Manifold::Sphere(1, 1500);
-  sphere = sphere.Translate(vec3(0.5));
+  sphere = sphere.Translate(glm::dvec3(0.5));
   Manifold sphereHull = sphere.Hull();
   EXPECT_EQ(sphereHull.NumTri(), sphere.NumTri());
   EXPECT_FLOAT_EQ(sphereHull.GetProperties().volume,
@@ -129,7 +129,7 @@ TEST(Hull, Sphere) {
 
 TEST(Hull, FailingTest1) {
   // 39202.stl
-  const std::vector<vec3> hullPts = {
+  const std::vector<glm::dvec3> hullPts = {
       {-24.983196259f, -43.272167206f, 52.710712433f},
       {-25.0f, -12.7726717f, 49.907142639f},
       {-23.016393661f, 39.865562439f, 79.083930969f},
@@ -161,7 +161,7 @@ TEST(Hull, FailingTest1) {
 
 TEST(Hull, FailingTest2) {
   // 1750623.stl
-  const std::vector<vec3> hullPts = {
+  const std::vector<glm::dvec3> hullPts = {
       {174.17001343f, -12.022000313f, 29.562002182f},
       {174.51400757f, -10.858000755f, -3.3340001106f},
       {187.50801086f, 22.826000214f, 23.486001968f},
@@ -194,7 +194,7 @@ TEST(Hull, FailingTest2) {
 
 TEST(Hull, DisabledFaceTest) {
   // 101213.stl
-  const std::vector<vec3> hullPts = {
+  const std::vector<glm::dvec3> hullPts = {
       {65.398902893, 58.303115845, 58.765388489},
       {42.147319794, 44.512584686, 75.703102112},
       {89.208251953, 97.092460632, 41.632453918},

@@ -36,9 +36,9 @@ Manifold Base(double width, double radius, double decorRadius,
 
   Polygons stretch(1);
   double dPhiRad = 2 * glm::pi<double>() / nCut;
-  vec2 p0(outerRadius, 0.0);
-  vec2 p1(innerRadius, -cut);
-  vec2 p2(innerRadius, cut);
+  glm::dvec2 p0(outerRadius, 0.0);
+  glm::dvec2 p1(innerRadius, -cut);
+  glm::dvec2 p2(innerRadius, cut);
   for (int i = 0; i < nCut; ++i) {
     stretch[0].push_back(glm::rotate(p0, dPhiRad * i));
     stretch[0].push_back(glm::rotate(p1, dPhiRad * i));

@@ -33,7 +33,7 @@ ManifoldManifold *level_set(
   using namespace std::placeholders;
   std::function<double(double, double, double)> sdf =
       std::bind(sdf_context, _1, _2, _3, ctx);
-  std::function<double(vec3)> fun = [sdf](vec3 v) {
+  std::function<double(glm::dvec3)> fun = [sdf](glm::dvec3 v) {
     return (sdf(v.x, v.y, v.z));
   };
   return to_c(new (mem) Manifold(Manifold::LevelSet(
@@ -47,7 +47,7 @@ extern "C" {
 
 ManifoldSimplePolygon *manifold_simple_polygon(void *mem, ManifoldVec2 *ps,
                                                size_t length) {
-  auto vec = new (mem) std::vector<vec2>;
+  auto vec = new (mem) std::vector<glm::dvec2>;
   for (size_t i = 0; i < length; ++i) {
     vec->push_back({ps[i].x, ps[i].y});
   }
@@ -167,7 +167,7 @@ ManifoldManifoldPair manifold_split_by_plane(void *mem_first, void *mem_second,
                                              ManifoldManifold *m,
                                              double normal_x, double normal_y,
                                              double normal_z, double offset) {
-  auto normal = vec3(normal_x, normal_y, normal_z);
+  auto normal = glm::dvec3(normal_x, normal_y, normal_z);
   auto pair = from_c(m)->SplitByPlane(normal, offset);
   auto first = new (mem_first) Manifold(pair.first);
   auto second = new (mem_second) Manifold(pair.second);
@@ -177,7 +177,7 @@ ManifoldManifoldPair manifold_split_by_plane(void *mem_first, void *mem_second,
 ManifoldManifold *manifold_trim_by_plane(void *mem, ManifoldManifold *m,
                                          double normal_x, double normal_y,
                                          double normal_z, double offset) {
-  auto normal = vec3(normal_x, normal_y, normal_z);
+  auto normal = glm::dvec3(normal_x, normal_y, normal_z);
   auto trimmed = from_c(m)->TrimByPlane(normal, offset);
   return to_c(new (mem) Manifold(trimmed));
 }
@@ -205,7 +205,7 @@ ManifoldManifold *manifold_batch_hull(void *mem, ManifoldManifoldVec *ms) {
 
 ManifoldManifold *manifold_hull_pts(void *mem, ManifoldVec3 *ps,
                                     size_t length) {
-  std::vector<vec3> vec(length);
+  std::vector<glm::dvec3> vec(length);
   for (size_t i = 0; i < length; ++i) {
     vec[i] = {ps[i].x, ps[i].y, ps[i].z};
   }
@@ -215,7 +215,7 @@ ManifoldManifold *manifold_hull_pts(void *mem, ManifoldVec3 *ps,
 
 ManifoldManifold *manifold_translate(void *mem, ManifoldManifold *m, double x,
                                      double y, double z) {
-  auto v = vec3(x, y, z);
+  auto v = glm::dvec3(x, y, z);
   auto translated = from_c(m)->Translate(v);
   return to_c(new (mem) Manifold(translated));
 }
@@ -228,7 +228,7 @@ ManifoldManifold *manifold_rotate(void *mem, ManifoldManifold *m, double x,
 
 ManifoldManifold *manifold_scale(void *mem, ManifoldManifold *m, double x,
                                  double y, double z) {
-  auto s = vec3(x, y, z);
+  auto s = glm::dvec3(x, y, z);
   auto scaled = from_c(m)->Scale(s);
   return to_c(new (mem) Manifold(scaled));
 }
@@ -237,7 +237,7 @@ ManifoldManifold *manifold_transform(void *mem, ManifoldManifold *m, double x1,
                                      double y1, double z1, double x2, double y2,
                                      double z2, double x3, double y3, double z3,
                                      double x4, double y4, double z4) {
-  auto mat = mat4x3(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4);
+  auto mat = glm::dmat4x3(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4);
   auto transformed = from_c(m)->Transform(mat);
   return to_c(new (mem) Manifold(transformed));
 }
@@ -256,7 +256,7 @@ ManifoldManifold *manifold_warp(void *mem, ManifoldManifold *m,
   using namespace std::placeholders;
   std::function<ManifoldVec3(double, double, double)> f3 =
       std::bind(fun, _1, _2, _3, ctx);
-  std::function<void(vec3 & v)> warp = [f3](vec3 &v) {
+  std::function<void(glm::dvec3 & v)> warp = [f3](glm::dvec3 &v) {
     v = from_c(f3(v.x, v.y, v.z));
   };
   auto warped = from_c(m)->Warp(warp);
@@ -322,7 +322,7 @@ ManifoldManifold *manifold_tetrahedron(void *mem) {
 
 ManifoldManifold *manifold_cube(void *mem, double x, double y, double z,
                                 int center) {
-  auto size = vec3(x, y, z);
+  auto size = glm::dvec3(x, y, z);
   auto m = Manifold::Cube(size, center);
   return to_c(new (mem) Manifold(m));
 }
@@ -383,7 +383,7 @@ ManifoldManifold *manifold_extrude(void *mem, ManifoldPolygons *cs,
                                    double height, int slices,
                                    double twist_degrees, double scale_x,
                                    double scale_y) {
-  auto scale = vec2(scale_x, scale_y);
+  auto scale = glm::dvec2(scale_x, scale_y);
   auto m = Manifold::Extrude(*from_c(cs), height, slices, twist_degrees, scale);
   return to_c(new (mem) Manifold(m));
 }
@@ -539,8 +539,8 @@ ManifoldManifold *manifold_set_properties(
   using namespace std::placeholders;
   std::function<void(double *, ManifoldVec3, const double *)> f3 =
       std::bind(fun, _1, _2, _3, ctx);
-  std::function<void(double *, vec3, const double *)> f =
-      [f3](double *new_prop, vec3 v, const double *old_prop) {
+  std::function<void(double *, glm::dvec3, const double *)> f =
+      [f3](double *new_prop, glm::dvec3 v, const double *old_prop) {
         return (f3(new_prop, to_c(v), old_prop));
       };
   auto man = from_c(m)->SetProperties(num_prop, f);

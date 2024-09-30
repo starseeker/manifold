@@ -81,9 +81,9 @@ C2::JoinType jt(CrossSection::JoinType jointype) {
   return jt;
 }
 
-vec2 v2_of_pd(const C2::PointD p) { return {p.x, p.y}; }
+glm::dvec2 v2_of_pd(const C2::PointD p) { return {p.x, p.y}; }
 
-C2::PointD v2_to_pd(const vec2 v) { return C2::PointD(v.x, v.y); }
+C2::PointD v2_to_pd(const glm::dvec2 v) { return C2::PointD(v.x, v.y); }
 
 C2::PathD pathd_of_contour(const SimplePolygon& ctr) {
   auto p = C2::PathD();
@@ -94,8 +94,8 @@ C2::PathD pathd_of_contour(const SimplePolygon& ctr) {
   return p;
 }
 
-C2::PathsD transform(const C2::PathsD ps, const mat3x2 m) {
-  const bool invert = glm::determinant(mat2(m)) < 0;
+C2::PathsD transform(const C2::PathsD ps, const glm::dmat3x2 m) {
+  const bool invert = glm::determinant(glm::dmat2(m)) < 0;
   auto transformed = C2::PathsD();
   transformed.reserve(ps.size());
   for (auto path : ps) {
@@ -103,7 +103,7 @@ C2::PathsD transform(const C2::PathsD ps, const mat3x2 m) {
     auto s = C2::PathD(sz);
     for (size_t i = 0; i < sz; ++i) {
       auto idx = invert ? sz - 1 - i : i;
-      s[idx] = v2_to_pd(m * vec3(path[i].x, path[i].y, 1));
+      s[idx] = v2_to_pd(m * glm::dvec3(path[i].x, path[i].y, 1));
     }
     transformed.push_back(s);
   }
@@ -158,12 +158,12 @@ void flatten(const C2::PolyTreeD* tree, C2::PathsD& polys, size_t i) {
   }
 }
 
-bool V2Lesser(vec2 a, vec2 b) {
+bool V2Lesser(glm::dvec2 a, glm::dvec2 b) {
   if (a.x == b.x) return a.y < b.y;
   return a.x < b.x;
 }
 
-void HullBacktrack(const vec2& pt, std::vector<vec2>& stack) {
+void HullBacktrack(const glm::dvec2& pt, std::vector<glm::dvec2>& stack) {
   auto sz = stack.size();
   while (sz >= 2 && CCW(stack[sz - 2], stack[sz - 1], pt, 0.0) <= 0.0) {
     stack.pop_back();
@@ -181,12 +181,12 @@ C2::PathD HullImpl(SimplePolygon& pts) {
   if (len < 3) return C2::PathD();  // not enough points to create a polygon
   std::sort(pts.begin(), pts.end(), V2Lesser);
 
-  auto lower = std::vector<vec2>{};
+  auto lower = std::vector<glm::dvec2>{};
   for (auto& pt : pts) {
     HullBacktrack(pt, lower);
     lower.push_back(pt);
   }
-  auto upper = std::vector<vec2>{};
+  auto upper = std::vector<glm::dvec2>{};
   for (auto pt_iter = pts.rbegin(); pt_iter != pts.rend(); pt_iter++) {
     HullBacktrack(*pt_iter, upper);
     upper.push_back(*pt_iter);
@@ -291,11 +291,11 @@ CrossSection::CrossSection(const Rect& rect) {
 // All access to paths_ should be done through the GetPaths() method, which
 // applies the accumulated transform_
 std::shared_ptr<const PathImpl> CrossSection::GetPaths() const {
-  if (transform_ == mat3x2(1.0)) {
+  if (transform_ == glm::dmat3x2(1.0)) {
     return paths_;
   }
   paths_ = shared_paths(::transform(paths_->paths_, transform_));
-  transform_ = mat3x2(1.0);
+  transform_ = glm::dmat3x2(1.0);
   return paths_;
 }
 
@@ -307,7 +307,7 @@ std::shared_ptr<const PathImpl> CrossSection::GetPaths() const {
  * @param size The X, and Y dimensions of the square.
  * @param center Set to true to shift the center to the origin.
  */
-CrossSection CrossSection::Square(const vec2 size, bool center) {
+CrossSection CrossSection::Square(const glm::dvec2 size, bool center) {
   if (size.x < 0.0 || size.y < 0.0 || glm::length(size) == 0.0) {
     return CrossSection();
   }
@@ -481,8 +481,8 @@ std::vector<CrossSection> CrossSection::Decompose() const {
  *
  * @param v The vector to add to every vertex.
  */
-CrossSection CrossSection::Translate(const vec2 v) const {
-  mat3x2 m(1.0, 0.0,  //
+CrossSection CrossSection::Translate(const glm::dvec2 v) const {
+  glm::dmat3x2 m(1.0, 0.0,  //
            0.0, 1.0,  //
            v.x, v.y);
   return Transform(m);
@@ -497,7 +497,7 @@ CrossSection CrossSection::Translate(const vec2 v) const {
 CrossSection CrossSection::Rotate(double degrees) const {
   auto s = sind(degrees);
   auto c = cosd(degrees);
-  mat3x2 m(c, s,   //
+  glm::dmat3x2 m(c, s,   //
            -s, c,  //
            0.0, 0.0);
   return Transform(m);
@@ -509,8 +509,8 @@ CrossSection CrossSection::Rotate(double degrees) const {
  *
  * @param v The vector to multiply every vertex by per component.
  */
-CrossSection CrossSection::Scale(const vec2 scale) const {
-  mat3x2 m(scale.x, 0.0,  //
+CrossSection CrossSection::Scale(const glm::dvec2 scale) const {
+  glm::dmat3x2 m(scale.x, 0.0,  //
            0.0, scale.y,  //
            0.0, 0.0);
   return Transform(m);
@@ -524,12 +524,12 @@ CrossSection CrossSection::Scale(const vec2 scale) const {
  *
  * @param ax the axis to be mirrored over
  */
-CrossSection CrossSection::Mirror(const vec2 ax) const {
+CrossSection CrossSection::Mirror(const glm::dvec2 ax) const {
   if (glm::length(ax) == 0.) {
     return CrossSection();
   }
   auto n = glm::normalize(glm::abs(ax));
-  auto m = mat3x2(mat2(1.0) - 2.0 * glm::outerProduct(n, n));
+  auto m = glm::dmat3x2(glm::dmat2(1.0) - 2.0 * glm::outerProduct(n, n));
   return Transform(m);
 }
 
@@ -540,9 +540,9 @@ CrossSection CrossSection::Mirror(const vec2 ax) const {
  *
  * @param m The affine transform matrix to apply to all the vertices.
  */
-CrossSection CrossSection::Transform(const mat3x2& m) const {
+CrossSection CrossSection::Transform(const glm::dmat3x2& m) const {
   auto transformed = CrossSection();
-  transformed.transform_ = m * mat3(transform_);
+  transformed.transform_ = m * glm::dmat3(transform_);
   transformed.paths_ = paths_;
   return transformed;
 }
@@ -555,9 +555,9 @@ CrossSection CrossSection::Transform(const mat3x2& m) const {
  *
  * @param warpFunc A function that modifies a given vertex position.
  */
-CrossSection CrossSection::Warp(std::function<void(vec2&)> warpFunc) const {
-  return WarpBatch([&warpFunc](VecView<vec2> vecs) {
-    for (vec2& p : vecs) {
+CrossSection CrossSection::Warp(std::function<void(glm::dvec2&)> warpFunc) const {
+  return WarpBatch([&warpFunc](VecView<glm::dvec2> vecs) {
+    for (glm::dvec2& p : vecs) {
       warpFunc(p);
     }
   });
@@ -566,13 +566,13 @@ CrossSection CrossSection::Warp(std::function<void(vec2&)> warpFunc) const {
 /**
  * Same as CrossSection::Warp but calls warpFunc with
  * a VecView which is roughly equivalent to std::span
- * pointing to all vec2 elements to be modified in-place
+ * pointing to all glm::dvec2 elements to be modified in-place
  *
  * @param warpFunc A function that modifies multiple vertex positions.
  */
 CrossSection CrossSection::WarpBatch(
-    std::function<void(VecView<vec2>)> warpFunc) const {
-  std::vector<vec2> tmp_verts;
+    std::function<void(VecView<glm::dvec2>)> warpFunc) const {
+  std::vector<glm::dvec2> tmp_verts;
   C2::PathsD paths = GetPaths()->paths_;  // deep copy
   for (C2::PathD const& path : paths) {
     for (C2::PointD const& p : path) {
@@ -580,7 +580,7 @@ CrossSection CrossSection::WarpBatch(
     }
   }
 
-  warpFunc(VecView<vec2>(tmp_verts.data(), tmp_verts.size()));
+  warpFunc(VecView<glm::dvec2>(tmp_verts.data(), tmp_verts.size()));
 
   auto cursor = tmp_verts.begin();
   for (C2::PathD& path : paths) {
@@ -620,9 +620,9 @@ CrossSection CrossSection::Simplify(double epsilon) const {
     auto area = C2::Area(poly);
     Rect box;
     for (auto vert : poly) {
-      box.Union(vec2(vert.x, vert.y));
+      box.Union(glm::dvec2(vert.x, vert.y));
     }
-    vec2 size = box.Size();
+    glm::dvec2 size = box.Size();
     if (std::abs(area) > std::max(size.x, size.y) * epsilon) {
       filtered.push_back(poly);
     }

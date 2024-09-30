@@ -26,23 +26,23 @@ using namespace emscripten;
 using namespace manifold;
 
 EMSCRIPTEN_BINDINGS(whatever) {
-  value_object<vec2>("vec2").field("x", &vec2::x).field("y", &vec2::y);
+  value_object<glm::dvec2>("vec2").field("x", &glm::dvec2::x).field("y", &glm::dvec2::y);
 
-  value_object<ivec3>("ivec3")
-      .field("0", &ivec3::x)
-      .field("1", &ivec3::y)
-      .field("2", &ivec3::z);
+  value_object<glm::vec<3, int>>("ivec3")
+      .field("0", &glm::vec<3, int>::x)
+      .field("1", &glm::vec<3, int>::y)
+      .field("2", &glm::vec<3, int>::z);
 
-  value_object<vec3>("vec3")
-      .field("x", &vec3::x)
-      .field("y", &vec3::y)
-      .field("z", &vec3::z);
+  value_object<glm::dvec3>("vec3")
+      .field("x", &glm::dvec3::x)
+      .field("y", &glm::dvec3::y)
+      .field("z", &glm::dvec3::z);
 
-  value_object<vec4>("vec4")
-      .field("x", &vec4::x)
-      .field("y", &vec4::y)
-      .field("z", &vec4::z)
-      .field("w", &vec4::w);
+  value_object<glm::dvec4>("vec4")
+      .field("x", &glm::dvec4::x)
+      .field("y", &glm::dvec4::y)
+      .field("z", &glm::dvec4::z)
+      .field("w", &glm::dvec4::w);
 
   enum_<Manifold::Error>("status")
       .value("NoError", Manifold::Error::NoError)
@@ -82,15 +82,15 @@ EMSCRIPTEN_BINDINGS(whatever) {
       .field("surfaceArea", &Properties::surfaceArea)
       .field("volume", &Properties::volume);
 
-  register_vector<ivec3>("Vector_ivec3");
-  register_vector<vec3>("Vector_vec3");
-  register_vector<vec2>("Vector_vec2");
-  register_vector<std::vector<vec2>>("Vector2_vec2");
+  register_vector<glm::vec<3, int>>("Vector_ivec3");
+  register_vector<glm::dvec3>("Vector_vec3");
+  register_vector<glm::dvec2>("Vector_vec2");
+  register_vector<std::vector<glm::dvec2>>("Vector2_vec2");
   register_vector<double>("Vector_f64");
   register_vector<CrossSection>("Vector_crossSection");
   register_vector<Manifold>("Vector_manifold");
   register_vector<Smoothness>("Vector_smoothness");
-  register_vector<vec4>("Vector_vec4");
+  register_vector<glm::dvec4>("Vector_vec4");
 
   class_<CrossSection>("CrossSection")
       .constructor(&cross_js::OfPolygons)
@@ -125,7 +125,7 @@ EMSCRIPTEN_BINDINGS(whatever) {
   function("_crossSectionCollectVertices", &cross_js::CollectVertices);
   function(
       "_crossSectionHullPoints",
-      select_overload<CrossSection(std::vector<vec2>)>(&CrossSection::Hull));
+      select_overload<CrossSection(std::vector<glm::dvec2>)>(&CrossSection::Hull));
 
   class_<Manifold>("Manifold")
       .constructor(&man_js::FromMeshJS)
@@ -189,7 +189,7 @@ EMSCRIPTEN_BINDINGS(whatever) {
   function("_manifoldCollectVertices", &man_js::CollectVertices);
   function(
       "_manifoldHullPoints",
-      select_overload<Manifold(const std::vector<vec3>&)>(&Manifold::Hull));
+      select_overload<Manifold(const std::vector<glm::dvec3>&)>(&Manifold::Hull));
 
   // Quality Globals
   function("setMinCircularAngle", &Quality::SetMinCircularAngle);

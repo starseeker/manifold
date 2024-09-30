@@ -25,15 +25,15 @@ class CsgLeafNode;
 class CsgNode : public std::enable_shared_from_this<CsgNode> {
  public:
   virtual std::shared_ptr<CsgLeafNode> ToLeafNode() const = 0;
-  virtual std::shared_ptr<CsgNode> Transform(const mat4x3 &m) const = 0;
+  virtual std::shared_ptr<CsgNode> Transform(const glm::dmat4x3 &m) const = 0;
   virtual CsgNodeType GetNodeType() const = 0;
-  virtual mat4x3 GetTransform() const = 0;
+  virtual glm::dmat4x3 GetTransform() const = 0;
 
   virtual std::shared_ptr<CsgNode> Boolean(
       const std::shared_ptr<CsgNode> &second, OpType op);
 
-  std::shared_ptr<CsgNode> Translate(const vec3 &t) const;
-  std::shared_ptr<CsgNode> Scale(const vec3 &s) const;
+  std::shared_ptr<CsgNode> Translate(const glm::dvec3 &t) const;
+  std::shared_ptr<CsgNode> Scale(const glm::dvec3 &s) const;
   std::shared_ptr<CsgNode> Rotate(double xDegrees = 0, double yDegrees = 0,
                                   double zDegrees = 0) const;
 };
@@ -42,24 +42,24 @@ class CsgLeafNode final : public CsgNode {
  public:
   CsgLeafNode();
   CsgLeafNode(std::shared_ptr<const Manifold::Impl> pImpl_);
-  CsgLeafNode(std::shared_ptr<const Manifold::Impl> pImpl_, mat4x3 transform_);
+  CsgLeafNode(std::shared_ptr<const Manifold::Impl> pImpl_, glm::dmat4x3 transform_);
 
   std::shared_ptr<const Manifold::Impl> GetImpl() const;
 
   std::shared_ptr<CsgLeafNode> ToLeafNode() const override;
 
-  std::shared_ptr<CsgNode> Transform(const mat4x3 &m) const override;
+  std::shared_ptr<CsgNode> Transform(const glm::dmat4x3 &m) const override;
 
   CsgNodeType GetNodeType() const override;
 
-  mat4x3 GetTransform() const override;
+  glm::dmat4x3 GetTransform() const override;
 
   static Manifold::Impl Compose(
       const std::vector<std::shared_ptr<CsgLeafNode>> &nodes);
 
  private:
   mutable std::shared_ptr<const Manifold::Impl> pImpl_;
-  mutable mat4x3 transform_ = mat4x3(1.0);
+  mutable glm::dmat4x3 transform_ = glm::dmat4x3(1.0);
 };
 
 class CsgOpNode final : public CsgNode {
@@ -73,13 +73,13 @@ class CsgOpNode final : public CsgNode {
   std::shared_ptr<CsgNode> Boolean(const std::shared_ptr<CsgNode> &second,
                                    OpType op) override;
 
-  std::shared_ptr<CsgNode> Transform(const mat4x3 &m) const override;
+  std::shared_ptr<CsgNode> Transform(const glm::dmat4x3 &m) const override;
 
   std::shared_ptr<CsgLeafNode> ToLeafNode() const override;
 
   CsgNodeType GetNodeType() const override { return op_; }
 
-  mat4x3 GetTransform() const override;
+  glm::dmat4x3 GetTransform() const override;
 
  private:
   struct Impl {
@@ -88,7 +88,7 @@ class CsgOpNode final : public CsgNode {
   };
   mutable ConcurrentSharedPtr<Impl> impl_ = ConcurrentSharedPtr<Impl>(Impl{});
   CsgNodeType op_;
-  mat4x3 transform_ = mat4x3(1.0);
+  glm::dmat4x3 transform_ = glm::dmat4x3(1.0);
   // the following fields are for lazy evaluation, so they are mutable
   mutable std::shared_ptr<CsgLeafNode> cache_ = nullptr;
 

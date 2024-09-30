@@ -261,7 +261,7 @@ struct BuildInternalBoxes {
 };
 
 struct TransformBox {
-  const mat4x3 transform;
+  const glm::dmat4x3 transform;
   void operator()(Box& box) { box = box.Transform(transform); }
 };
 
@@ -296,7 +296,7 @@ class Collider {
     UpdateBoxes(leafBB);
   }
 
-  bool Transform(mat4x3 transform) {
+  bool Transform(glm::dmat4x3 transform) {
     ZoneScoped;
     bool axisAligned = true;
     for (int row : {0, 1, 2}) {
@@ -371,10 +371,10 @@ class Collider {
     }
   }
 
-  static uint32_t MortonCode(vec3 position, Box bBox) {
+  static uint32_t MortonCode(glm::dvec3 position, Box bBox) {
     using collider_internal::SpreadBits3;
-    vec3 xyz = (position - bBox.min) / (bBox.max - bBox.min);
-    xyz = glm::min(vec3(1023.0), glm::max(vec3(0.0), 1024.0 * xyz));
+    glm::dvec3 xyz = (position - bBox.min) / (bBox.max - bBox.min);
+    xyz = glm::min(glm::dvec3(1023.0), glm::max(glm::dvec3(0.0), 1024.0 * xyz));
     uint32_t x = SpreadBits3(static_cast<uint32_t>(xyz.x));
     uint32_t y = SpreadBits3(static_cast<uint32_t>(xyz.y));
     uint32_t z = SpreadBits3(static_cast<uint32_t>(xyz.z));

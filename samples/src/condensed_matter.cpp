@@ -19,7 +19,6 @@
 namespace {
 using namespace manifold;
 using namespace glm;
-using manifold::vec3;
 
 constexpr double AtomicRadiusN2 = 0.65;
 constexpr double BondPairN2 = 1.197;
@@ -36,14 +35,14 @@ constexpr double cellAngleB = cellAngleA;
 constexpr double cellAngleC = 120;
 constexpr double LayerSeperationC = 3.364;
 
-Manifold bond(int fn, vec3 p1 = {0, 0, 0}, vec3 p2 = {1, 1, 1},
+Manifold bond(int fn, glm::dvec3 p1 = {0, 0, 0}, glm::dvec3 p2 = {1, 1, 1},
               double ar1 = 1.0, double ar2 = 2.0) {
   double cyR = std::min(ar1, ar2) / 5.0;
   double dist = length(p1 - p2);
-  vec3 cyC = (p1 + p2) / 2.0;
+  glm::dvec3 cyC = (p1 + p2) / 2.0;
   double beta = degrees(acos((p1.z - p2.z) / dist));
   double gamma = degrees(atan2(p1.y - p2.y, p1.x - p2.x));
-  vec3 rot = {0.0, beta, gamma};
+  glm::dvec3 rot = {0.0, beta, gamma};
   return Manifold::Cylinder(dist, cyR, -1, fn, true)
       .Rotate(rot.x, rot.y, rot.z)
       .Translate(cyC);
@@ -51,23 +50,23 @@ Manifold bond(int fn, vec3 p1 = {0, 0, 0}, vec3 p2 = {1, 1, 1},
 
 Manifold bondPair(int fn, double d = 0.0, double ar = 1.0) {
   double axD = pow(d, 1.0 / 3.0);
-  vec3 p1 = {+axD, -axD, -axD};
-  vec3 p2 = {-axD, +axD, +axD};
+  glm::dvec3 p1 = {+axD, -axD, -axD};
+  glm::dvec3 p2 = {-axD, +axD, +axD};
   Manifold sphere = Manifold::Sphere(ar, fn);
   return sphere.Translate(p1) + sphere.Translate(p2) + bond(fn, p1, p2, ar, ar);
 }
 
-Manifold hexagonalClosePacked(int fn, vec3 dst = {1.0, 1.0, 1.0},
+Manifold hexagonalClosePacked(int fn, glm::dvec3 dst = {1.0, 1.0, 1.0},
                               double ar = 1.0) {
   std::vector<Manifold> parts;
-  vec3 p1 = {0, 0, 0};
+  glm::dvec3 p1 = {0, 0, 0};
   parts.push_back(Manifold::Sphere(ar, fn));
   double baseAg = 30;
-  vec3 ag = {baseAg, baseAg + 120, baseAg + 240};
-  vec3 points[] = {{cosd(ag.x) * dst.x, sind(ag.x) * dst.x, 0},
+  glm::dvec3 ag = {baseAg, baseAg + 120, baseAg + 240};
+  glm::dvec3 points[] = {{cosd(ag.x) * dst.x, sind(ag.x) * dst.x, 0},
                    {cosd(ag.y) * dst.y, sind(ag.y) * dst.y, 0},
                    {cosd(ag.z) * dst.z, sind(ag.z) * dst.z, 0}};
-  for (vec3 p2 : points) {
+  for (glm::dvec3 p2 : points) {
     parts.push_back(Manifold::Sphere(ar, fn).Translate(p2));
     parts.push_back(bond(fn, p1, p2, ar, ar));
   }
@@ -79,13 +78,13 @@ Manifold fccDiamond(int fn, double ar = 1.0, double unitCell = 2.0,
   std::vector<Manifold> parts;
   double huc = unitCell / 2.0;
   double od = fccOffset * unitCell;
-  vec3 interstitial[] = {
+  glm::dvec3 interstitial[] = {
       {+od, +od, +od}, {+od, -od, -od}, {-od, +od, -od}, {-od, -od, +od}};
-  vec3 corners[] = {{+huc, +huc, +huc},
+  glm::dvec3 corners[] = {{+huc, +huc, +huc},
                     {+huc, -huc, -huc},
                     {-huc, +huc, -huc},
                     {-huc, -huc, +huc}};
-  vec3 fcc[] = {{+huc, 0, 0}, {-huc, 0, 0}, {0, +huc, 0},
+  glm::dvec3 fcc[] = {{+huc, 0, 0}, {-huc, 0, 0}, {0, +huc, 0},
                 {0, -huc, 0}, {0, 0, +huc}, {0, 0, -huc}};
   for (auto p : corners) parts.push_back(Manifold::Sphere(ar, fn).Translate(p));
 
@@ -93,7 +92,7 @@ Manifold fccDiamond(int fn, double ar = 1.0, double unitCell = 2.0,
   for (auto p : interstitial)
     parts.push_back(Manifold::Sphere(ar, fn).Translate(p));
 
-  vec3 bonds[][2] = {{interstitial[0], corners[0]}, {interstitial[0], fcc[0]},
+  glm::dvec3 bonds[][2] = {{interstitial[0], corners[0]}, {interstitial[0], fcc[0]},
                      {interstitial[0], fcc[2]},     {interstitial[0], fcc[4]},
                      {interstitial[1], corners[1]}, {interstitial[1], fcc[0]},
                      {interstitial[1], fcc[3]},     {interstitial[1], fcc[5]},
@@ -121,8 +120,8 @@ Manifold SiN2Cell(int fn, double x = 1.0, double y = 1.0, double z = 1.0) {
          SiCell(fn, x, y, z);
 }
 
-Manifold GraphiteCell(int fn, vec3 xyz = {1.0, 1.0, 1.0}) {
-  vec3 loc = {(cellLenA * xyz.x * cosd(30) * 2),
+Manifold GraphiteCell(int fn, glm::dvec3 xyz = {1.0, 1.0, 1.0}) {
+  glm::dvec3 loc = {(cellLenA * xyz.x * cosd(30) * 2),
               ((cellLenB * sind(30)) + cellLenC) * xyz.y, xyz.z};
   return hexagonalClosePacked(fn, {cellLenA, cellLenB, cellLenC}, AtomicRadiusC)
       .Translate(loc);

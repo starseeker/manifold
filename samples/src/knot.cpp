@@ -52,13 +52,13 @@ Manifold TorusKnot(int p, int q, double majorRadius, double minorRadius,
   CrossSection circle = CrossSection::Circle(1., n).Translate({2, 0});
   Manifold knot = Manifold::Revolve(circle.ToPolygons(), m);
 
-  knot = knot.Warp([p, q, majorRadius, minorRadius, threadRadius](vec3& v) {
+  knot = knot.Warp([p, q, majorRadius, minorRadius, threadRadius](glm::dvec3& v) {
     double psi = q * atan2(v.x, v.y);
     double theta = psi * p / q;
-    vec2 xy = vec2(v);
+    glm::dvec2 xy = glm::dvec2(v);
     double x1 = sqrt(glm::dot(xy, xy));
     double phi = atan2(x1 - 2, v.z);
-    v = vec3(cos(phi), 0.0, sin(phi));
+    v = glm::dvec3(cos(phi), 0.0, sin(phi));
     v *= threadRadius;
     double r = majorRadius + minorRadius * cos(theta);
     v = glm::rotateX(v, -double(atan2(p * minorRadius, q * r)));
