@@ -171,14 +171,22 @@ void PrintFailure(const std::exception &e, const PolygonsIdx &polys,
  */
 bool IsConvex(const PolygonsIdx &polys, double precision) {
   for (const SimplePolygonIdx &poly : polys) {
-    const vec2 firstEdge = poly[0].pos - poly[poly.size() - 1].pos;
+    const vec2 v1(poly[0].pos[0], poly[0].pos[1]);
+    const vec2 v2(poly[poly.size() - 1].pos[0], poly[poly.size() - 1].pos[1]);
+    const vec2 firstEdge = v1 - v2;
     // Zero-length edges comes out NaN, which won't trip the early return, but
     // it's okay because that zero-length edge will also get tested
     // non-normalized and will trip det == 0.
     vec2 lastEdge = glm::normalize(firstEdge);
     for (size_t v = 0; v < poly.size(); ++v) {
-      const vec2 edge =
-          v + 1 < poly.size() ? poly[v + 1].pos - poly[v].pos : firstEdge;
+      vec2 edge;
+      if (v + 1 < poly.size()) {
+         const vec2 ev1(poly[v].pos[0], poly[v].pos[1]);
+         const vec2 ev2(poly[v+1].pos[0], poly[v+1].pos[1]);
+	 edge = ev2 - ev1;
+      } else {
+	 edge =  firstEdge;
+      };
       const double det = determinant2x2(lastEdge, edge);
       if (det <= 0 ||
           (std::abs(det) < precision && glm::dot(lastEdge, edge) < 0))
@@ -622,7 +630,8 @@ class EarClip {
     std::vector<VertItr> starts;
     for (const SimplePolygonIdx &poly : polys) {
       auto vert = poly.begin();
-      polygon_.push_back({vert->idx, 0.0, earsQueue_.end(), vert->pos});
+      vec2 tpos(vert->pos[0], vert->pos[1]);
+      polygon_.push_back({vert->idx, 0.0, earsQueue_.end(), tpos});
       const VertItr first = std::prev(polygon_.end());
 
       bBox_.Union(first->pos);
@@ -632,9 +641,10 @@ class EarClip {
       starts.push_back(first);
 
       for (++vert; vert != poly.end(); ++vert) {
-        bBox_.Union(vert->pos);
+        vec2 tpos(vert->pos[0], vert->pos[1]);
+        bBox_.Union(tpos);
 
-        polygon_.push_back({vert->idx, 0.0, earsQueue_.end(), vert->pos});
+        polygon_.push_back({vert->idx, 0.0, earsQueue_.end(), tpos});
         VertItr next = std::prev(polygon_.end());
 
         Link(last, next);
@@ -943,7 +953,7 @@ namespace manifold {
  * @return std::vector<ivec3> The triangles, referencing the original
  * vertex indicies.
  */
-std::vector<ivec3> TriangulateIdx(const PolygonsIdx &polys, double precision) {
+std::vector<std::array<int, 3>> TriangulateIdx(const PolygonsIdx &polys, double precision) {
   std::vector<ivec3> triangles;
   double updatedPrecision = precision;
 #ifdef MANIFOLD_EXCEPTIONS
@@ -977,7 +987,15 @@ std::vector<ivec3> TriangulateIdx(const PolygonsIdx &polys, double precision) {
 #endif
   }
 #endif
-  return triangles;
+  std::vector<std::array<int, 3>> otriangles;
+  for (size_t i = 0; i < triangles.size(); i++) {
+      std::array<int, 3> tarray;
+      tarray[0] = triangles[i][0];
+      tarray[1] = triangles[i][1];
+      tarray[2]= triangles[i][2];
+      otriangles.push_back(tarray);
+  }
+  return otriangles;
 }
 
 /**
@@ -992,12 +1010,12 @@ std::vector<ivec3> TriangulateIdx(const PolygonsIdx &polys, double precision) {
  * @return std::vector<ivec3> The triangles, referencing the original
  * polygon points in order.
  */
-std::vector<ivec3> Triangulate(const Polygons &polygons, double precision) {
+std::vector<std::array<int,3>> Triangulate(const Polygons &polygons, double precision) {
   int idx = 0;
   PolygonsIdx polygonsIndexed;
   for (const auto &poly : polygons) {
     SimplePolygonIdx simpleIndexed;
-    for (const vec2 &polyVert : poly) {
+    for (const std::array<double , 2> &polyVert : poly) {
       simpleIndexed.push_back({polyVert, idx++});
     }
     polygonsIndexed.push_back(simpleIndexed);
