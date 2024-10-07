@@ -21,6 +21,7 @@
 #include "./collider.h"
 #include "./utils.h"
 #include "manifold/optional_assert.h"
+#include "manifold/rect.h"
 
 namespace {
 using namespace manifold;

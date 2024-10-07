@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "manifold/polygon.h"
+#include "manifold/rect.h"
 #include "manifold/vec_view.h"
 
 namespace manifold {
@@ -72,7 +73,7 @@ class CrossSection {
   CrossSection(const Polygons& contours,
                FillRule fillrule = FillRule::Positive);
   CrossSection(const Rect& rect);
-  static CrossSection Square(const vec2 dims, bool center = false);
+  static CrossSection Square(const std::array<double, 2> dims, bool center = false);
   static CrossSection Circle(double radius, int circularSegments = 0);
   ///@}
 
@@ -90,13 +91,13 @@ class CrossSection {
   /** @name Modification
    */
   ///@{
-  CrossSection Translate(const vec2 v) const;
+  CrossSection Translate(const std::array<double, 2> v) const;
   CrossSection Rotate(double degrees) const;
-  CrossSection Scale(const vec2 s) const;
-  CrossSection Mirror(const vec2 ax) const;
+  CrossSection Scale(const std::array<double, 2> s) const;
+  CrossSection Mirror(const std::array<double, 2> ax) const;
   CrossSection Transform(const mat3x2& m) const;
-  CrossSection Warp(std::function<void(vec2&)> warpFunc) const;
-  CrossSection WarpBatch(std::function<void(VecView<vec2>)> warpFunc) const;
+  CrossSection Warp(std::function<void(std::array<double, 2>&)> warpFunc) const;
+  CrossSection WarpBatch(std::function<void(VecView<std::array<double, 2>>)> warpFunc) const;
   CrossSection Simplify(double epsilon = 1e-6) const;
 
   // Adapted from Clipper2 docs:

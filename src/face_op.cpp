@@ -216,7 +216,12 @@ PolygonsIdx Manifold::Impl::Face2Polygons(VecView<Halfedge>::IterC start,
       polys.push_back({});
     }
     int vert = (start + thisEdge)->startVert;
-    polys.back().push_back({projection * vertPos_[vert], vert});
+
+    vec2 pv = projection * vertPos_[vert];
+    std::array<double, 2> va;
+    va[0] = pv.x;
+    va[1] = pv.y;
+    polys.back().push_back({va, vert});
     const auto result = vert_edge.find((start + thisEdge)->endVert);
     DEBUG_ASSERT(result != vert_edge.end(), topologyErr, "non-manifold edge");
     thisEdge = result->second;
@@ -274,7 +279,11 @@ Polygons Manifold::Impl::Slice(double height) const {
       const vec3 below = vertPos_[up.startVert];
       const vec3 above = vertPos_[up.endVert];
       const double a = (height - below.z) / (above.z - below.z);
-      poly.push_back(vec2(glm::mix(below, above, a)));
+      vec2 v2 = vec2(glm::mix(below, above, a));
+      std::array<double, 2> a2;
+      a2[0] = v2.x;
+      a2[1] = v2.y;
+      poly.push_back(a2);
 
       const int pair = up.pairedHalfedge;
       tri = pair / 3;
