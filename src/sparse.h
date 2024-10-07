@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #pragma once
+#include "./common.h"
 #include "./utils.h"
 #include "./vec.h"
-#include "manifold/common.h"
 #include "manifold/optional_assert.h"
 #include "manifold/parallel.h"
 

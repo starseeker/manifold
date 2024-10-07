@@ -17,7 +17,7 @@
 #include <array>
 #include <glm/glm.hpp>
 
-#include "manifold/common.h"
+#include "./common.h"
 
 namespace manifold {
 

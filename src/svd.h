@@ -26,7 +26,7 @@
 
 #include <cmath>
 
-#include "manifold/common.h"
+#include "./common.h"
 
 namespace {
 using manifold::mat3;

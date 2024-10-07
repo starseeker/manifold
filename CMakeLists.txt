@@ -410,7 +410,6 @@ install(
 # install public headers
 set(
   MANIFOLD_PUBLIC_HDRS
-  include/manifold/common.h
   include/manifold/iters.h
   include/manifold/manifold.h
   include/manifold/optional_assert.h

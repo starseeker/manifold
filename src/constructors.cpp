@@ -227,8 +227,8 @@ Manifold Manifold::Extrude(const Polygons& crossSection, double height,
   for (auto& poly : crossSection) {
     nCrossSection += poly.size();
     SimplePolygonIdx simpleIndexed;
-    for (const vec2& polyVert : poly) {
-      vertPos.push_back({polyVert.x, polyVert.y, 0.0});
+    for (const std::array<double, 2>&polyVert : poly) {
+      vertPos.push_back({polyVert[0], polyVert[1], 0.0});
       simpleIndexed.push_back({polyVert, static_cast<int>(idx++)});
     }
     polygonsIndexed.push_back(simpleIndexed);
@@ -250,7 +250,8 @@ Manifold Manifold::Extrude(const Polygons& crossSection, double height,
           triVerts.push_back({nCrossSection * i + j, lastVert - nCrossSection,
                               thisVert - nCrossSection});
         } else {
-          vec2 pos = transform * poly[vert];
+          vec2 tpos = vec2(poly[vert][0], poly[vert][1]);
+          vec2 pos = transform * tpos;
           vertPos.push_back({pos.x, pos.y, height * alpha});
           triVerts.push_back({thisVert, lastVert, thisVert - nCrossSection});
           triVerts.push_back(
@@ -265,7 +266,12 @@ Manifold Manifold::Extrude(const Polygons& crossSection, double height,
     for (size_t j = 0; j < crossSection.size();
          ++j)  // Duplicate vertex for Genus
       vertPos.push_back({0.0, 0.0, height});
-  std::vector<ivec3> top = TriangulateIdx(polygonsIndexed);
+  std::vector<std::array<int, 3>> atop = TriangulateIdx(polygonsIndexed);
+  std::vector<ivec3> top;
+  for(size_t i = 0; i < atop.size(); i++) {
+    ivec3 tvec(atop[i][0], atop[i][1], atop[i][2]);
+    top.push_back(tvec);
+  }
   for (const ivec3& tri : top) {
     triVerts.push_back({tri[0], tri[2], tri[1]});
     if (!isCone) triVerts.push_back(tri + nCrossSection * nDivisions);
@@ -298,7 +304,7 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
   double radius = 0;
   for (const SimplePolygon& poly : crossSection) {
     size_t i = 0;
-    while (i < poly.size() && poly[i].x < 0) {
+    while (i < poly.size() && poly[i][0] < 0) {
       ++i;
     }
     if (i == poly.size()) {
@@ -307,15 +313,15 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
     polygons.push_back({});
     const size_t start = i;
     do {
-      if (poly[i].x >= 0) {
+      if (poly[i][0] >= 0) {
         polygons.back().push_back(poly[i]);
-        radius = std::max(radius, poly[i].x);
+        radius = std::max(radius, poly[i][0]);
       }
       const size_t next = i + 1 == poly.size() ? 0 : i + 1;
-      if ((poly[next].x < 0) != (poly[i].x < 0)) {
-        const double y = poly[next].y + poly[next].x *
-                                            (poly[i].y - poly[next].y) /
-                                            (poly[i].x - poly[next].x);
+      if ((poly[next][0] < 0) != (poly[i][0] < 0)) {
+        const double y = poly[next][1] + poly[next][0] *
+                                            (poly[i][1] - poly[next][1]) /
+                                            (poly[i][0] - poly[next][0]);
         polygons.back().push_back({0, y});
       }
       i = next;
@@ -352,7 +358,7 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
     std::size_t nPosVerts = 0;
     std::size_t nRevolveAxisVerts = 0;
     for (auto& pt : poly) {
-      if (pt.x > 0) {
+      if (pt[0] > 0) {
         nPosVerts++;
       } else {
         nRevolveAxisVerts++;
@@ -364,9 +370,11 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
 
       if (!isFullRevolution) startPoses.push_back(startPosIndex);
 
-      const vec2 currPolyVertex = poly[polyVert];
-      const vec2 prevPolyVertex =
-          poly[polyVert == 0 ? poly.size() - 1 : polyVert - 1];
+      const vec2 tpvec = vec2(poly[polyVert][0], poly[polyVert][1]);
+      const vec2 currPolyVertex = tpvec;
+      size_t nind = polyVert == 0 ? poly.size() - 1 : polyVert - 1;
+      const vec2 ppvec = vec2(poly[nind][0], poly[nind][1]);
+      const vec2 prevPolyVertex = ppvec;
 
       const int prevStartPosIndex =
           startPosIndex +
@@ -404,14 +412,14 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
 
   // Add front and back triangles if not a full revolution.
   if (!isFullRevolution) {
-    std::vector<ivec3> frontTriangles =
+    std::vector<std::array<int, 3>> frontTriangles =
         Triangulate(polygons, pImpl_->precision_);
     for (auto& t : frontTriangles) {
-      triVerts.push_back({startPoses[t.x], startPoses[t.y], startPoses[t.z]});
+      triVerts.push_back({startPoses[t[0]], startPoses[t[1]], startPoses[t[2]]});
     }
 
     for (auto& t : frontTriangles) {
-      triVerts.push_back({endPoses[t.z], endPoses[t.y], endPoses[t.x]});
+      triVerts.push_back({endPoses[t[2]], endPoses[t[1]], endPoses[t[0]]});
     }
   }
 

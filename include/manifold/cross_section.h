@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-#include "manifold/common.h"
+#include "manifold/polygon.h"
 #include "manifold/vec_view.h"
 
 namespace manifold {

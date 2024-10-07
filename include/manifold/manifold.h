@@ -16,7 +16,7 @@
 #include <functional>
 #include <memory>
 
-#include "manifold/common.h"
+#include "manifold/polygon.h"
 #include "manifold/vec_view.h"
 
 namespace manifold {
