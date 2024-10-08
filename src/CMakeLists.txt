@@ -28,6 +28,7 @@ set(
   polygon.cpp
   properties.cpp
   quickhull.cpp
+  rect.cpp
   sdf.cpp
   smoothing.cpp
   sort.cpp

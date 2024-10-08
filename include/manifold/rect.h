@@ -23,7 +23,8 @@ namespace manifold {
 /**
  * Axis-aligned rectangular bounds.
  */
-struct Rect {
+class Rect {
+  public:
   double min[2] = {std::numeric_limits<double>::infinity()};
   double max[2] = {-std::numeric_limits<double>::infinity()};
 
@@ -46,65 +47,48 @@ struct Rect {
   /**
    * Return the dimensions of the rectangle.
    */
-  std::array<double, 2> Size();
+  std::array<double, 2> const Size() const;
 
   /**
    * Return the area of the rectangle.
    */
-  double Area() const {
-    auto sz = Size();
-    return sz.x * sz.y;
-  }
+  double Area() const;
 
   /**
    * Returns the absolute-largest coordinate value of any contained
    * point.
    */
-  double Scale() const {
-    std::array<double, 2> absMax = glm::max(glm::abs(min), glm::abs(max));
-    return glm::max(absMax.x, absMax.y);
-  }
+  double Scale() const;
 
   /**
    * Returns the center point of the rectangle.
    */
-  std::array<double, 2> Center() const { return 0.5 * (max + min); }
+  std::array<double, 2> Center() const;
 
   /**
    * Does this rectangle contain (includes on border) the given point?
    */
-  bool Contains(const std::array<double, 2>& p) const {
-    return glm::all(glm::greaterThanEqual(p, min)) &&
-           glm::all(glm::greaterThanEqual(max, p));
-  }
+  bool Contains(const std::array<double, 2>& p) const;
 
   /**
    * Does this rectangle contain (includes equal) the given rectangle?
    */
-  bool Contains(const Rect& rect) const {
-    return glm::all(glm::greaterThanEqual(rect.min, min)) &&
-           glm::all(glm::greaterThanEqual(max, rect.max));
-  }
+  bool Contains(const Rect& rect) const;
 
   /**
    * Does this rectangle overlap the one given (including equality)?
    */
-  bool DoesOverlap(const Rect& rect) const {
-    return min.x <= rect.max.x && min.y <= rect.max.y && max.x >= rect.min.x &&
-           max.y >= rect.min.y;
-  }
+  bool DoesOverlap(const Rect& rect) const;
 
   /**
    * Is the rectangle empty (containing no space)?
    */
-  bool IsEmpty() const { return max.y <= min.y || max.x <= min.x; };
+  bool IsEmpty() const;
 
   /**
    * Does this recangle have finite bounds?
    */
-  bool IsFinite() const {
-    return glm::all(glm::isfinite(min)) && glm::all(glm::isfinite(max));
-  }
+  bool IsFinite() const;
 
   ///@}
 
@@ -115,28 +99,22 @@ struct Rect {
   /**
    * Expand this rectangle (in place) to include the given point.
    */
-  void Union(const std::array<double, 2> p) {
-    min = glm::min(min, p);
-    max = glm::max(max, p);
-  }
+  void Union(const std::array<double, 2> p);
 
   /**
    * Expand this rectangle to include the given Rect.
    */
-  Rect Union(const Rect& rect) const {
-    Rect out;
-    out.min = glm::min(min, rect.min);
-    out.max = glm::max(max, rect.max);
-    return out;
-  }
+  Rect Union(const Rect& rect) const;
 
   /**
    * Shift this rectangle by the given vector.
    */
   Rect operator+(const std::array<double, 2> shift) const {
     Rect out;
-    out.min = min + shift;
-    out.max = max + shift;
+    out.min[0] = min[0] + shift[0];
+    out.min[1] = min[1] + shift[1];
+    out.max[0] = max[0] + shift[0];
+    out.max[1] = max[1] + shift[1];
     return out;
   }
 
@@ -144,8 +122,10 @@ struct Rect {
    * Shift this rectangle in-place by the given vector.
    */
   Rect& operator+=(const std::array<double, 2> shift) {
-    min += shift;
-    max += shift;
+    min[0] += shift[0];
+    min[1] += shift[1];
+    max[0] += shift[0];
+    max[1] += shift[1];
     return *this;
   }
 
@@ -154,8 +134,10 @@ struct Rect {
    */
   Rect operator*(const std::array<double, 2> scale) const {
     Rect out;
-    out.min = min * scale;
-    out.max = max * scale;
+    out.min[0] = min[0] * scale[0];
+    out.min[1] = min[1] * scale[1];
+    out.max[0] = max[0] * scale[0];
+    out.max[1] = max[1] * scale[1];
     return out;
   }
 
@@ -163,8 +145,10 @@ struct Rect {
    * Scale this rectangle in-place by the given vector.
    */
   Rect& operator*=(const std::array<double, 2> scale) {
-    min *= scale;
-    max *= scale;
+    min[0] *= scale[0];
+    min[1] *= scale[1];
+    max[0] *= scale[0];
+    max[1] *= scale[1];
     return *this;
   }
 

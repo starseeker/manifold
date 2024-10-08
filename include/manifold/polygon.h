@@ -20,6 +20,11 @@
 namespace manifold {
 
 /**
+ * Boolean operation type: Add (Union), Subtract (Difference), and Intersect.
+ */
+enum class OpType { Add, Subtract, Intersect };
+
+/**
  * Global parameters that control debugging output. Only has an
  * effect when compiled with the MANIFOLD_DEBUG flag.
  */

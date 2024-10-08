@@ -22,12 +22,6 @@
 namespace manifold {
 
 /**
- * Boolean operation type: Add (Union), Subtract (Difference), and Intersect.
- */
-enum class OpType { Add, Subtract, Intersect };
-
-
-/**
  * @ingroup Debug
  *
  * Allows modification of the assertions checked in MANIFOLD_DEBUG mode.
