@@ -45,6 +45,11 @@ if(MANIFOLD_EXPORT)
   target_link_libraries(convertFile manifold manifold)
   target_compile_options(convertFile PRIVATE ${MANIFOLD_FLAGS})
   target_compile_features(convertFile PUBLIC cxx_std_17)
+
+  add_executable(offsetTest offset_test.cpp)
+  target_link_libraries(offsetTest manifold)
+  target_compile_options(offsetTest PRIVATE ${MANIFOLD_FLAGS})
+  target_compile_features(offsetTest PUBLIC cxx_std_17)
 endif()
 
 if(BUILD_TEST_CGAL)
