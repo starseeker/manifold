@@ -80,10 +80,7 @@ main(int argc, const char **argv) {
     double len = la::length(edge);
     if (len < std::numeric_limits<float>::min())
       continue;
-    // TODO - does Cylinder have a problem when the radius
-    // is <= height?
-    if (len < 1)
-      continue;
+
     manifold::Manifold origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
     vec3 evec(-1*edge.x, -1*edge.y, edge.z);
     manifold::Manifold rotated_cyl = origin_cyl.Transform(manifold::RotateUp(evec));
@@ -94,6 +91,18 @@ main(int argc, const char **argv) {
 
     // Union
     manifold::Manifold left = c;
+
+    // what the... getting Vec out of range if we let this through...
+    if (len < 0.05) {
+      //continue;
+      std::cout << "Short Edge Cylinder counts (Manifold, pre-bool, edge " << edge_cnt << "): " << right.NumVert() << " vertices, " << right.NumTri() << " triangles\n";
+      ExportMesh(std::string("left.obj"), left.GetMeshGL(), {});
+      ExportMesh(std::string("cyl.obj"), right.GetMeshGL(), {});
+      ExportMesh(std::string("left.glb"), left.GetMeshGL(), {});
+      ExportMesh(std::string("cyl.glb"), right.GetMeshGL(), {});
+      std::cout << "Short Edge Cylinder counts (MeshGL, pre bool, edge" << edge_cnt << ": " << right.GetMeshGL().NumVert() << " vertices, " << right.GetMeshGL().NumTri() << " triangles\n";
+    }
+
     try {
       c = left.Boolean(right, manifold::OpType::Add);
 #if defined(CHECK_INTERMEDIATES)
@@ -109,6 +118,8 @@ main(int argc, const char **argv) {
 #endif
     } catch (const std::exception &e) {
       std::cerr << "Edges - manifold boolean op failure: " << e.what() << "\n";
+      std::cout << "Short Edge Cylinder counts (Manifold, post-bool, edge " << edge_cnt << "): " << right.NumVert() << " vertices, " << right.NumTri() << " triangles\n";
+      std::cout << "Short Edge Cylinder counts (MeshGL, post bool, edge" << edge_cnt << ": " << right.GetMeshGL().NumVert() << " vertices, " << right.GetMeshGL().NumTri() << " triangles\n";
       return -1;
     }
   }
