@@ -1030,12 +1030,24 @@ TEST(BooleanComplex, HullMask) {
 // Eventually, once other issues are resolved, the in-loop checks should be
 // removed in favor of the top level checks.
 TEST(BooleanComplex, SimpleOffset) {
-  double mtol = std::numeric_limits<float>::min();
   std::string file = __FILE__;
   std::string dir = file.substr(0, file.rfind('/'));
   MeshGL seeds = ImportMesh(dir + "/models/" + "Generic_Twin_91.1.t0.glb");
   EXPECT_TRUE(seeds.NumTri() > 10);
   EXPECT_TRUE(seeds.NumVert() > 10);
+
+  // seeds mesh isn't necessarily a manifold. Calculate the BBox explicitly
+  Box bBox;
+  for (size_t i = 0; i < seeds.vertProperties.size()/3; i++) {
+	  for (size_t j = 0; j < 3; j++)
+		  if (std::isnan(seeds.vertProperties[3*i+j])) continue;
+	  vec3 v(seeds.vertProperties[3*i+0], seeds.vertProperties[3*i+1], seeds.vertProperties[3*i+2]);
+	  bBox.min = la::min(bBox.min, v);
+	  bBox.max = la::max(bBox.max, v);
+  }
+  double mtol = 1e-5 * bBox.Scale();
+  std::cout << "bbox: " << bBox.min.x << "," << bBox.min.x << "," << bBox.min.y << "," << bBox.min.z << "," << bBox.max.x << "," << bBox.max.y << "," << bBox.max.z << "\n";
+  std::cout << "mtol: " << mtol << "\n";
   // Unique edges
   std::vector<std::pair<int, int>> edges;
   for (size_t i = 0; i < seeds.NumTri(); i++) {
@@ -1047,13 +1059,13 @@ TEST(BooleanComplex, SimpleOffset) {
     }
   }
   manifold::Manifold c;
-  c.SetTolerance(mtol);
   // Vertex Spheres
   Manifold sph = Manifold::Sphere(1, 8);
   for (size_t i = 0; i < seeds.NumVert(); i++) {
     vec3 vpos(seeds.vertProperties[3 * i + 0], seeds.vertProperties[3 * i + 1],
               seeds.vertProperties[3 * i + 2]);
     Manifold vsph = sph.Translate(vpos);
+    vsph.SetTolerance(mtol);
     c += vsph;
   }
   // Edge Cylinders
@@ -1068,11 +1080,12 @@ TEST(BooleanComplex, SimpleOffset) {
     double len = la::length(edge);
     if (len < std::numeric_limits<float>::min()) continue;
     manifold::Manifold origin_cyl;
-    origin_cyl.SetTolerance(mtol);
     origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
+    origin_cyl.SetTolerance(mtol);
     vec3 evec(-1 * edge.x, -1 * edge.y, edge.z);
     quat q = rotation_quat(normalize(evec), vec3(0, 0, 1));
     manifold::Manifold right = origin_cyl.Transform({la::qmat(q), ev1});
+    right.SetTolerance(mtol);
     c += right;
   }
   // Triangle Volumes
