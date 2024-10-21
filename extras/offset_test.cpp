@@ -8,7 +8,6 @@
 
 #include "manifold/manifold.h"
 #include "manifold/meshIO.h"
-#include "../src/utils.h"
 
 using namespace manifold;
 
@@ -85,8 +84,8 @@ main(int argc, const char **argv) {
 
     manifold::Manifold origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
     vec3 evec(-1*edge.x, -1*edge.y, edge.z);
-    manifold::Manifold rotated_cyl = origin_cyl.Transform(manifold::RotateUp(evec));
-    manifold::Manifold right = rotated_cyl.Translate(ev1);
+    quat q = rotation_quat(normalize(evec), vec3(0, 0, 1));
+    manifold::Manifold right = origin_cyl.Transform({la::qmat(q), ev1});
 
     if (!right.NumTri())
       continue;
