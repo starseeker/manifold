@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "manifold.h"
+#include "linalg.h"
 #include "polygon.h"
 #include "test.h"
 
@@ -1379,3 +1380,108 @@ TEST(Boolean, CreatePropertiesSlow) {
   Manifold result = a + b;
   EXPECT_EQ(result.NumProp(), 3);
 }
+
+#ifdef MANIFOLD_EXPORT
+namespace la = linalg;
+// Note - For the moment, the Status() checks are included in the loops to
+// (more or less) mimic the BRL-CAD behavior of checking the mesh for
+// unexpected output after each iteration.  Doing so is not ideal - it
+// *massively* slows the overall evaluation - but it also seems to be
+// triggering behavior that avoids a triangulation failure.
+//
+// Eventually, once other issues are resolved, the in-loop checks should be
+// removed in favor of the top level checks.
+TEST(BooleanComplex, SimpleOffset) {
+  std::string file = __FILE__;
+  std::string dir = file.substr(0, file.rfind('/'));
+  MeshGL seeds = ImportMesh(dir + "/models/" + "Generic_Twin_91.1.t0.glb");
+  EXPECT_TRUE(seeds.NumTri() > 10);
+  EXPECT_TRUE(seeds.NumVert() > 10);
+  // Unique edges
+  std::vector<std::pair<int, int>> edges;
+  for (size_t i = 0; i < seeds.NumTri(); i++) {
+    const int k[3] = {1, 2, 0};
+    for (const int j : {0, 1, 2}) {
+      int v1 = seeds.triVerts[i * 3 + j];
+      int v2 = seeds.triVerts[i * 3 + k[j]];
+      if (v2 > v1) edges.push_back(std::make_pair(v1, v2));
+    }
+  }
+  manifold::Manifold c;
+  // Vertex Spheres
+  Manifold sph = Manifold::Sphere(1, 8);
+  for (size_t i = 0; i < seeds.NumVert(); i++) {
+    glm::vec3 vpos(seeds.vertProperties[3 * i + 0], seeds.vertProperties[3 * i + 1],
+              seeds.vertProperties[3 * i + 2]);
+    Manifold vsph = sph.Translate(vpos);
+    c += vsph;
+  }
+  // Edge Cylinders
+  for (size_t i = 0; i < edges.size(); i++) {
+    la::vec<double, 3> ev1 = la::vec<double, 3>(seeds.vertProperties[3 * edges[i].first + 0],
+                    seeds.vertProperties[3 * edges[i].first + 1],
+                    seeds.vertProperties[3 * edges[i].first + 2]);
+    la::vec<double, 3> ev2 = la::vec<double, 3>(seeds.vertProperties[3 * edges[i].second + 0],
+                    seeds.vertProperties[3 * edges[i].second + 1],
+                    seeds.vertProperties[3 * edges[i].second + 2]);
+    la::vec<double, 3> edge = ev2 - ev1;
+    double len = la::length(edge);
+    if (len < std::numeric_limits<float>::min()) continue;
+     // TODO - workaround, shouldn't be necessary
+    if (len < 0.03) continue;
+    manifold::Manifold origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
+    glm::vec3 evec(-1 * edge.x, -1 * edge.y, edge.z);
+    manifold::Manifold rotated_cyl =
+        origin_cyl.Transform(manifold::RotateUp(evec));
+    glm::vec3 gev1(ev1.x, ev1.y, ev1.z);
+    manifold::Manifold right = rotated_cyl.Translate(gev1);
+    if (!right.NumTri()) continue;
+    c += right;
+  }
+  // Triangle Volumes
+  for (size_t i = 0; i < seeds.NumTri(); i++) {
+    int eind[3];
+    for (int j = 0; j < 3; j++) eind[j] = seeds.triVerts[i * 3 + j];
+    std::vector<la::vec<double, 3>> ev;
+    for (int j = 0; j < 3; j++) {
+      ev.push_back(la::vec<double, 3>(seeds.vertProperties[3 * eind[j] + 0],
+                        seeds.vertProperties[3 * eind[j] + 1],
+                        seeds.vertProperties[3 * eind[j] + 2]));
+    }
+    la::vec<double, 3> a = ev[0] - ev[2];
+    la::vec<double, 3> b = ev[1] - ev[2];
+    la::vec<double, 3> n = la::normalize(la::cross(a, b));
+    if (!la::all(la::isfinite(n))) continue;
+    // Extrude the points above and below the plane of the triangle
+    la::vec<double, 3> pnts[6];
+    for (int j = 0; j < 3; j++) pnts[j] = ev[j] + n;
+    for (int j = 3; j < 6; j++) pnts[j] = ev[j - 3] - n;
+    // Construct the points and faces of the new manifold
+    double pts[3 * 6] = {pnts[4].x, pnts[4].y, pnts[4].z, pnts[3].x, pnts[3].y,
+                         pnts[3].z, pnts[0].x, pnts[0].y, pnts[0].z, pnts[1].x,
+                         pnts[1].y, pnts[1].z, pnts[5].x, pnts[5].y, pnts[5].z,
+                         pnts[2].x, pnts[2].y, pnts[2].z};
+    int faces[24] = {
+        faces[0] = 0,  faces[1] = 1,  faces[2] = 4,   // 1 2 5
+        faces[3] = 2,  faces[4] = 3,  faces[5] = 5,   // 3 4 6
+        faces[6] = 1,  faces[7] = 0,  faces[8] = 3,   // 2 1 4
+        faces[9] = 3,  faces[10] = 2, faces[11] = 1,  // 4 3 2
+        faces[12] = 3, faces[13] = 0, faces[14] = 4,  // 4 1 5
+        faces[15] = 4, faces[16] = 5, faces[17] = 3,  // 5 6 4
+        faces[18] = 5, faces[19] = 4, faces[20] = 1,  // 6 5 2
+        faces[21] = 1, faces[22] = 2, faces[23] = 5   // 2 3 6
+    };
+    manifold::MeshGL tri_m;
+    for (int j = 0; j < 18; j++)
+      tri_m.vertProperties.insert(tri_m.vertProperties.end(), pts[j]);
+    for (int j = 0; j < 24; j++)
+      tri_m.triVerts.insert(tri_m.triVerts.end(), faces[j]);
+    manifold::Manifold right(tri_m);
+    c += right;
+    // See above discussion
+    EXPECT_EQ(c.Status(), Manifold::Error::NoError);
+  }
+  // See above discussion
+  EXPECT_EQ(c.Status(), Manifold::Error::NoError);
+}
+#endif
