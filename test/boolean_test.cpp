@@ -1483,5 +1483,8 @@ TEST(BooleanComplex, SimpleOffset) {
   }
   // See above discussion
   EXPECT_EQ(c.Status(), Manifold::Error::NoError);
+
+  MeshGL omesh = c.GetMeshGL();
+  std::cout << "omesh tri cnt: " << omesh.NumTri() << "\n";
 }
 #endif
