@@ -1030,6 +1030,7 @@ TEST(BooleanComplex, HullMask) {
 // Eventually, once other issues are resolved, the in-loop checks should be
 // removed in favor of the top level checks.
 TEST(BooleanComplex, SimpleOffset) {
+  double mtol = std::numeric_limits<float>::min();
   std::string file = __FILE__;
   std::string dir = file.substr(0, file.rfind('/'));
   MeshGL seeds = ImportMesh(dir + "/models/" + "Generic_Twin_91.1.t0.glb");
@@ -1046,6 +1047,7 @@ TEST(BooleanComplex, SimpleOffset) {
     }
   }
   manifold::Manifold c;
+  c.SetTolerance(mtol);
   // Vertex Spheres
   Manifold sph = Manifold::Sphere(1, 8);
   for (size_t i = 0; i < seeds.NumVert(); i++) {
@@ -1065,7 +1067,9 @@ TEST(BooleanComplex, SimpleOffset) {
     vec3 edge = ev2 - ev1;
     double len = la::length(edge);
     if (len < std::numeric_limits<float>::min()) continue;
-    manifold::Manifold origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
+    manifold::Manifold origin_cyl;
+    origin_cyl.SetTolerance(mtol);
+    origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
     vec3 evec(-1 * edge.x, -1 * edge.y, edge.z);
     quat q = rotation_quat(normalize(evec), vec3(0, 0, 1));
     manifold::Manifold right = origin_cyl.Transform({la::qmat(q), ev1});
@@ -1105,6 +1109,7 @@ TEST(BooleanComplex, SimpleOffset) {
         faces[21] = 1, faces[22] = 2, faces[23] = 5   // 2 3 6
     };
     manifold::MeshGL64 tri_m;
+    tri_m.tolerance = mtol;
     for (int j = 0; j < 18; j++)
       tri_m.vertProperties.insert(tri_m.vertProperties.end(), pts[j]);
     for (int j = 0; j < 24; j++)
