@@ -158,7 +158,7 @@ main(int argc, const char **argv) {
   }
 
   // Add spheres for the vertices
-  Manifold sph = Manifold::Sphere(1, 8);
+  std::cerr << "Processing " << input.NumVert() << " vertices...\n";
   for (size_t i = 0; i < input.vertProperties.size()/3; i++) {
     Manifold sph = Manifold::Sphere(1, 8);
     Manifold right = sph.Translate(glm::vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
@@ -171,6 +171,7 @@ main(int argc, const char **argv) {
   }
   std::cerr << "Processing " << input.NumVert() << " vertices... done.\n";
 
+  // Add cylinders for the edges
   std::cerr << "Processing " << edges.size() << " edges... \n";
   std::set<std::pair<int, int>>::iterator e_it;
   int edge_cnt = 0;
