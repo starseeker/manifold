@@ -11,8 +11,6 @@
 
 using namespace manifold;
 
-#define CHECK_INTERMEDIATES
-
 vec3
 orthovec(vec3 vin)
 {
@@ -129,8 +127,12 @@ main(int argc, const char **argv) {
     return 1;
   }
 
-  const std::string filename(argv[1]);
-  MeshGL input = ImportMesh(filename);
+  std::string filename(argv[1]);
+  MeshGL input;
+  if (!input.Read(filename)) {
+    std::cerr << "Unable to import " << filename << "\n";
+    return 1;
+  }
   std::cout << input.NumVert() << " vertices, " << input.NumTri() << " triangles\n";
 
   // Note:  for this test, the input is the source of the elements rather than
@@ -157,17 +159,12 @@ main(int argc, const char **argv) {
   }
 
   // Add spheres for the vertices
-  Manifold sph = Manifold::Sphere(1, 8);
+  std::cerr << "Processing " << input.NumVert() << " vertices...\n";
   for (size_t i = 0; i < input.vertProperties.size()/3; i++) {
-    Manifold vsph = sph.Translate(vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
-    manifold::Manifold left = c;
-    manifold::Manifold right(vsph);
+    Manifold sph = Manifold::Sphere(1, 8);
+    Manifold right = sph.Translate(vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL64 imesh = c.GetMeshGL64();
-      std::cout << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Vertices - manifold boolean op failure: " << e.what() << "\n";
       return -1;
@@ -175,36 +172,27 @@ main(int argc, const char **argv) {
   }
   std::cerr << "Processing " << input.NumVert() << " vertices... done.\n";
 
+  // Add cylinders for the edges
   std::cerr << "Processing " << edges.size() << " edges... \n";
   std::set<std::pair<int, int>>::iterator e_it;
   int edge_cnt = 0;
   for (e_it = edges.begin(); e_it != edges.end(); ++e_it) {
-    vec3 ev1 = vec3(input.vertProperties[3*e_it->first+0], input.vertProperties[3*e_it->first+1], input.vertProperties[3*e_it->first+2]);
-    vec3 ev2 = vec3(input.vertProperties[3*e_it->second+0], input.vertProperties[3*e_it->second+1], input.vertProperties[3*e_it->second+2]);
+    int e1_ind = e_it->first;
+    int e2_ind = e_it->second;
+    vec3 ev1 = vec3(input.vertProperties[3*e1_ind+0], input.vertProperties[3*e1_ind+1], input.vertProperties[3*e1_ind+2]);
+    vec3 ev2 = vec3(input.vertProperties[3*e2_ind+0], input.vertProperties[3*e2_ind+1], input.vertProperties[3*e2_ind+2]);
     edge_cnt++;
 
     // Make a cylinder for the edge
     Manifold ecyl = EdgeCylinder(ev1, ev2, 1);
 
-    if (!ecyl.NumTri())
-      continue;
+    //if (!ecyl.NumTri())
+      //continue;
 
     // Union
-    manifold::Manifold left = c;
     manifold::Manifold right(ecyl);
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL64 imesh = c.GetMeshGL64();
-      std::cout << "Edge " << edge_cnt << ": " << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-      if (!imesh.NumTri()) {
-	std::cerr << "ev1: " << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
-	std::cerr << "ev2: " << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
-	ExportMesh(std::string("fail_left.obj"), left.GetMeshGL(), {});
-	ExportMesh(std::string("fail_right.obj"), right.GetMeshGL(), {});
-	return -1;
-      }
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Edges - manifold boolean op failure: " << e.what() << "\n";
       return -1;
@@ -260,25 +248,13 @@ main(int argc, const char **argv) {
     for (int j = 0; j < 24; j++)
       tri_m.triVerts.insert(tri_m.triVerts.end(), faces[j]);
 
-    manifold::Manifold left = c;
     manifold::Manifold right(tri_m);
 
-    if (!right.NumTri())
-      continue;
+    //if (!right.NumTri())
+      //continue;
 
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL64 imesh = c.GetMeshGL64();
-      std::cout << "Face " << i << ": " << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-      if (!imesh.NumTri()) {
-	std::cerr << "ev1: " << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
-	std::cerr << "ev2: " << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
-	ExportMesh(std::string("fail_left.obj"), left.GetMeshGL(), {});
-	ExportMesh(std::string("fail_right.obj"), right.GetMeshGL(), {});
-	return -1;
-      }
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Faces - manifold boolean op failure: " << e.what() << "\n";
       return -1;
@@ -286,7 +262,7 @@ main(int argc, const char **argv) {
   }
   std::cerr << "Processing " << input.NumTri() << " triangles... done.\n";
 
-  ExportMesh(std::string("out.obj"), c.GetMeshGL(), {});
+  c.GetMeshGL().Write("out.obj");
 
   return 0;
 }
