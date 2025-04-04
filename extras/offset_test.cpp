@@ -8,6 +8,8 @@
 
 #include "manifold.h"
 
+//#define CHECK_FOR_EMPTY
+
 using namespace manifold;
 
 glm::dvec3
@@ -162,12 +164,26 @@ main(int argc, const char **argv) {
   for (size_t i = 0; i < input.vertProperties.size()/3; i++) {
     Manifold sph = Manifold::Sphere(1, 8);
     Manifold right = sph.Translate(glm::vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
-    try {
+#ifdef CHECK_FOR_EMPTY
+    Manifold bkup = c;
+#endif
+     try {
       c += right;
     } catch (const std::exception &e) {
       std::cerr << "Vertices - manifold boolean op failure: " << e.what() << "\n";
       return -1;
     }
+
+#ifdef CHECK_FOR_EMPTY
+    if (c.IsEmpty()) {
+      std::cerr << std::setprecision(19) << std::fixed << "Warning: sphere " << i << " from pnt " << input.vertProperties[3*i+0] << "," << input.vertProperties[3*i+1] << "," << input.vertProperties[3*i+2]  << " resulted in an empty boolean, skipping\n";
+      c = bkup;
+      std::string cfname = std::string("c_sph_") + std::to_string(i) + std::string(".obj");
+      c.Write(cfname);
+      std::string rfname = std::string("sph_") + std::to_string(i) + std::string(".obj");
+      right.Write(rfname);
+    }
+#endif
   }
   std::cerr << "Processing " << input.NumVert() << " vertices... done.\n";
 
@@ -175,6 +191,7 @@ main(int argc, const char **argv) {
   std::cerr << "Processing " << edges.size() << " edges... \n";
   std::set<std::pair<int, int>>::iterator e_it;
   int edge_cnt = 0;
+  int edge_used_cnt = 0;
   for (e_it = edges.begin(); e_it != edges.end(); ++e_it) {
     int e1_ind = e_it->first;
     int e2_ind = e_it->second;
@@ -186,8 +203,18 @@ main(int argc, const char **argv) {
     glm::dvec3 dev1(ev1.x, ev1.y, ev1.z);
     glm::dvec3 dev2(ev2.x, ev2.y, ev2.z);
     Manifold ecyl = EdgeCylinder(dev1, dev2, 1);
+    if (ecyl.IsEmpty()) {
+      std::cerr << "Warning: cylinder from edge " << edge_cnt << " with pnts:\n";
+      std::cerr << std::setprecision(19) << std::fixed << dev1.x << "," << dev1.y << "," << dev1.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << dev2.z << "," << dev2.y << "," << dev2.z << "\n";
+      std::cerr << "returned an empty manifold\n";
+      continue;
+    }
 
     // Union
+ #ifdef CHECK_FOR_EMPTY
+    manifold::Manifold bkup = c;
+#endif
     manifold::Manifold right(ecyl);
     try {
       c += right;
@@ -195,10 +222,27 @@ main(int argc, const char **argv) {
       std::cerr << "Edges - manifold boolean op failure: " << e.what() << "\n";
       return -1;
     }
+
+#ifdef CHECK_FOR_EMPTY
+    if (c.IsEmpty()) {
+      std::cerr << "Warning: cylinder from edge " << edge_cnt << " with pnts:\n"
+      std::cerr << std::setprecision(19) << std::fixed << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << ev2.z << "," << ev2.y << "," << ev2.z << "\n";
+      std::cerr "resulted in an empty boolean, skipping\n";
+      c = bkup;
+      std::string cfname = std::string("c_edge_") + std::to_string(edge_cnt) + std::string(".obj");
+      c.Write(cfname);
+      std::string rfname = std::string("edge_") + std::to_string(edge_cnt) + std::string(".obj");
+      right.Write(rfname);
+    }
+#endif
+    // Incorporated
+    edge_used_cnt++;
   }
-  std::cerr << "Processing " << edges.size() << " edges... done\n";
+  std::cerr << "Processing " << edges.size() << " edges... done (used " << edge_used_cnt << ").\n";
 
   std::cerr << "Processing " << input.NumTri() << " triangles...\n";
+  int tri_used_cnt = 0;
   for (size_t i = 0; i < input.triVerts.size()/3; i++) {
     int eind[3];
     for (int j = 0; j < 3; j++)
@@ -247,17 +291,49 @@ main(int argc, const char **argv) {
       tri_m.triVerts.insert(tri_m.triVerts.end(), faces[j]);
 
     manifold::Manifold right(tri_m);
+    if (right.IsEmpty()) {
+      std::cerr << "Warning: arb from face " << i << " with pnts: \n";
+      std::cerr << std::setprecision(19) << std::fixed << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << ev3.x << "," << ev3.y << "," << ev3.z << "\n";
+      std::cerr << "resulted in an empty manifold, skipping\n";
+      continue;
+    }
 
+#ifdef CHECK_FOR_EMPTY
+    Manifold bkup = c;
+#endif
     try {
       c += right;
     } catch (const std::exception &e) {
       std::cerr << "Faces - manifold boolean op failure: " << e.what() << "\n";
       return -1;
     }
-  }
-  std::cerr << "Processing " << input.NumTri() << " triangles... done.\n";
+#ifdef CHECK_FOR_EMPTY
+    if (c.IsEmpty()) {
+      std::cerr << "Warning: boolean op with arb from face " << i << " with pnts: \n";
+      std::cerr << std::setprecision(19) << std::fixed << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
+      std::cerr << std::setprecision(19) << std::fixed << ev3.x << "," << ev3.y << "," << ev3.z << "\n";
+      std::cerr << "resulted in an empty manifold, skipping\n";
+      c = bkup;
+      std::string cfname = std::string("c_arb_") + std::to_string(i) + std::string(".obj");
+      c.Write(cfname);
+      std::string rfname = std::string("arb_") + std::to_string(i) + std::string(".obj");
+      right.Write(rfname);
+    }
+#endif
 
-  c.GetMeshGL().Write("out.obj");
+    // Incorporated
+    tri_used_cnt++;
+  }
+  std::cerr << "Processing " << input.NumTri() << " triangles... done (used " << tri_used_cnt << ").\n";
+
+  MeshGL omesh = c.GetMeshGL();
+
+  std::cout << "Final mesh has " << omesh.NumTri() << " triangles and " << omesh.NumVert() << " vertices.\n";
+
+  omesh.Write("out.obj");
 
   return 0;
 }
