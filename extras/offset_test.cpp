@@ -6,32 +6,118 @@
 #include <iostream>
 #include <set>
 
-#include "linalg.h"
 #include "manifold.h"
-#include "meshIO.h"
 
 using namespace manifold;
 
-  namespace la = linalg;
-  using vec2 = la::vec<double, 2>;
-  using vec3 = la::vec<double, 3>;
-  using vec4 = la::vec<double, 4>;
-  using bvec4 = la::vec<bool, 4>;
-  using mat2 = la::mat<double, 2, 2>;
-  using mat3x2 = la::mat<double, 3, 2>;
-  using mat4x2 = la::mat<double, 4, 2>;
-  using mat2x3 = la::mat<double, 2, 3>;
-  using mat3 = la::mat<double, 3, 3>;
-  using mat4x3 = la::mat<double, 4, 3>;
-  using mat3x4 = la::mat<double, 3, 4>;
-  using mat4 = la::mat<double, 4, 4>;
-  using ivec2 = la::vec<int, 2>;
-  using ivec3 = la::vec<int, 3>;
-  using ivec4 = la::vec<int, 4>;
-  using quat = la::vec<double, 4>;
+glm::dvec3
+orthovec(glm::dvec3 vin)
+{
+  const double in[3] = {vin.x, vin.y, vin.z};
+  double out[3] = {0.0};
+  int i = 0; int j = 1; int k = 2;
+  double f = in[0];
+  if (fabs(in[1]) < f) {
+    f = fabs(in[1]);
+    i = 1; j = 2; k = 0;
+  }
+  if (fabs(in[2]) < f) {
+    i = 2; j = 0; k = 1;
+  }
+  f = 1 / hypot(in[j], in[k]);
+  out[i] = 0.0; out[j] = -in[k] * f; out[k] = in[j] * f;
+  return glm::vec3(out[0], out[1], out[2]);
+}
 
+#define MAX_CYL_STEPS 100
+Manifold
+EdgeCylinder(glm::dvec3 p1, glm::dvec3 p2, double r)
+{
+  int nsegs = 8;
+  glm::dvec3 h = p2 - p1;
+  glm::dvec3 xaxis = r * glm::normalize(orthovec(h));
+  glm::dvec3 yaxis = r * glm::normalize(glm::cross(xaxis, h));
 
-#define CHECK_INTERMEDIATES
+  // Figure out the step we take for each ring in the cylinder
+  double sl = M_PI * r * r / (double)nsegs;
+  double el = glm::length(h);
+  double hl = (el < 2*sl) ? el : -1.0;
+  int steps = 1;
+  if (hl < 0) {
+    steps = (int)(el / sl);
+    if (steps > MAX_CYL_STEPS)
+      steps = MAX_CYL_STEPS;
+    hl = el / (double)steps;
+  }
+  glm::dvec3 hs = hl*glm::normalize(h);
+
+  MeshGL mgl;
+
+  // Vertices
+  for (int i = 0; i <= steps; i++) {
+    for (int j = 0; j < nsegs; j++) {
+      double alpha = 2 * M_PI * (double)(2*j+1)/(double)(2*nsegs);
+      /* vertex geometry */
+      glm::dvec3 np = p1 + (double)i*hs + cos(alpha)*xaxis + sin(alpha)*yaxis;
+      mgl.vertProperties.insert(mgl.vertProperties.end(), np.x);
+      mgl.vertProperties.insert(mgl.vertProperties.end(), np.y);
+      mgl.vertProperties.insert(mgl.vertProperties.end(), np.z);
+    }
+  }
+  // The two center points of the end caps are the last two points
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p1.x);
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p1.y);
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p1.z);
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p2.x);
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p2.y);
+  mgl.vertProperties.insert(mgl.vertProperties.end(), p2.z);
+
+  // Next, we define the faces.  The two end caps each have one triangle for
+  // each segment.  Each step defines 2*nseg triangles.
+  // For the steps, we process in quads - each segment gets two triangles
+  for (int i = 0; i < steps; i++) {
+    for (int j = 0; j < nsegs; j++) {
+      int pnts[4];
+      pnts[0] = nsegs * i + j;
+      pnts[1] = (j < nsegs - 1) ? nsegs * i + j + 1 : nsegs * i;
+      pnts[2] = nsegs * (i + 1) + j;
+      pnts[3] = (j < nsegs - 1) ? nsegs * (i + 1) + j + 1 : nsegs * (i + 1);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[0]);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[2]);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[1]);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[2]);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[3]);
+      mgl.triVerts.insert(mgl.triVerts.end(), pnts[1]);
+    }
+  }
+
+  // Define the end caps.  The first set of triangles uses the base
+  // point (stored at verts[steps*nsegs] and the points of the first
+  // circle (stored at the beginning of verts)
+  for (int j = 0; j < nsegs; j++){
+    int pnts[3];
+    pnts[0] = (steps+1) * nsegs;
+    pnts[1] = j;
+    pnts[2] = (j < nsegs - 1) ? j + 1 : 0;
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[0]);
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[1]);
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[2]);
+  }
+  // The second set of cap triangles uses the second edge point
+  // point (stored at verts[steps*nsegs+1] and the points of the last
+  // circle (stored at the end of verts = (steps-1) * nsegs)
+  for (int j = 0; j < nsegs; j++){
+    int pnts[3];
+    pnts[0] = (steps+1) * nsegs + 1;
+    pnts[1] = steps * nsegs + j;
+    pnts[2] = (j < nsegs - 1) ? steps * nsegs + j + 1 : steps * nsegs;
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[0]);
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[2]);
+    mgl.triVerts.insert(mgl.triVerts.end(), pnts[1]);
+  }
+
+  return Manifold(mgl);
+}
 
 int
 main(int argc, const char **argv) {
@@ -40,8 +126,12 @@ main(int argc, const char **argv) {
     return 1;
   }
 
-  const std::string filename(argv[1]);
-  MeshGL input = ImportMesh(filename);
+  std::string filename(argv[1]);
+  MeshGL input;
+  if (!input.Read(filename)) {
+    std::cerr << "Unable to import " << filename << "\n";
+    return 1;
+  }
   std::cout << input.NumVert() << " vertices, " << input.NumTri() << " triangles\n";
 
   // Note:  for this test, the input is the source of the elements rather than
@@ -70,15 +160,10 @@ main(int argc, const char **argv) {
   // Add spheres for the vertices
   Manifold sph = Manifold::Sphere(1, 8);
   for (size_t i = 0; i < input.vertProperties.size()/3; i++) {
-    Manifold vsph = sph.Translate(glm::vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
-    manifold::Manifold left = c;
-    manifold::Manifold right(vsph);
+    Manifold sph = Manifold::Sphere(1, 8);
+    Manifold right = sph.Translate(glm::vec3(input.vertProperties[3*i+0], input.vertProperties[3*i+1], input.vertProperties[3*i+2]));
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL imesh = c.GetMeshGL();
-      std::cout << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Vertices - manifold boolean op failure: " << e.what() << "\n";
       return -1;
@@ -90,43 +175,23 @@ main(int argc, const char **argv) {
   std::set<std::pair<int, int>>::iterator e_it;
   int edge_cnt = 0;
   for (e_it = edges.begin(); e_it != edges.end(); ++e_it) {
-    vec3 ev1 = vec3(input.vertProperties[3*e_it->first+0], input.vertProperties[3*e_it->first+1], input.vertProperties[3*e_it->first+2]);
-    vec3 ev2 = vec3(input.vertProperties[3*e_it->second+0], input.vertProperties[3*e_it->second+1], input.vertProperties[3*e_it->second+2]);
+    int e1_ind = e_it->first;
+    int e2_ind = e_it->second;
+    glm::vec3 ev1 = glm::vec3(input.vertProperties[3*e1_ind+0], input.vertProperties[3*e1_ind+1], input.vertProperties[3*e1_ind+2]);
+    glm::vec3 ev2 = glm::vec3(input.vertProperties[3*e2_ind+0], input.vertProperties[3*e2_ind+1], input.vertProperties[3*e2_ind+2]);
     edge_cnt++;
 
-    vec3 edge = ev2 - ev1;
-    double len = la::length(edge);
-    if (len < 1)
-      continue;
-    manifold::Manifold origin_cyl = manifold::Manifold::Cylinder(len, 1, 1, 8);
-    glm::vec3 evec(-1*edge.x, -1*edge.y, edge.z);
-    manifold::Manifold rotated_cyl = origin_cyl.Transform(manifold::RotateUp(evec));
-    manifold::Manifold right = rotated_cyl.Translate(glm::vec3(ev1.x, ev1.y, ev1.z));
-
-    if (!right.NumTri() || right.NumVert() < 8)
-      continue;
+    // Make a cylinder for the edge
+    glm::dvec3 dev1(ev1.x, ev1.y, ev1.z);
+    glm::dvec3 dev2(ev2.x, ev2.y, ev2.z);
+    Manifold ecyl = EdgeCylinder(dev1, dev2, 1);
 
     // Union
-    manifold::Manifold left = c;
+    manifold::Manifold right(ecyl);
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL imesh = c.GetMeshGL();
-      std::cout << "Edge " << edge_cnt << ": " << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-      if (!imesh.NumTri()) {
-	std::cerr << "ev1: " << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
-	std::cerr << "ev2: " << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
-	ExportMesh(std::string("fail_left.obj"), left.GetMeshGL(), {});
-	ExportMesh(std::string("fail_right.obj"), right.GetMeshGL(), {});
-	return -1;
-      }
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Edges - manifold boolean op failure: " << e.what() << "\n";
-      std::cerr << "ev1: " << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
-      std::cerr << "ev2: " << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
-      ExportMesh(std::string("fail_left.glb"), left.GetMeshGL(), {});
-      ExportMesh(std::string("fail_right.glb"), right.GetMeshGL(), {});
       return -1;
     }
   }
@@ -137,17 +202,17 @@ main(int argc, const char **argv) {
     int eind[3];
     for (int j = 0; j < 3; j++)
       eind[j] = input.triVerts[i*3+j];
-    vec3 ev1 = vec3(input.vertProperties[3*eind[0]+0], input.vertProperties[3*eind[0]+1], input.vertProperties[3*eind[0]+2]);
-    vec3 ev2 = vec3(input.vertProperties[3*eind[1]+0], input.vertProperties[3*eind[1]+1], input.vertProperties[3*eind[1]+2]);
-    vec3 ev3 = vec3(input.vertProperties[3*eind[2]+0], input.vertProperties[3*eind[2]+1], input.vertProperties[3*eind[2]+2]);
+    glm::vec3 ev1 = glm::vec3(input.vertProperties[3*eind[0]+0], input.vertProperties[3*eind[0]+1], input.vertProperties[3*eind[0]+2]);
+    glm::vec3 ev2 = glm::vec3(input.vertProperties[3*eind[1]+0], input.vertProperties[3*eind[1]+1], input.vertProperties[3*eind[1]+2]);
+    glm::vec3 ev3 = glm::vec3(input.vertProperties[3*eind[2]+0], input.vertProperties[3*eind[2]+1], input.vertProperties[3*eind[2]+2]);
 
     // Get the triangle normal
-    vec3 a = ev1 - ev3;
-    vec3 b = ev2 - ev3;
-    vec3 n = la::normalize(la::cross(a, b));
+    glm::vec3 a = ev1 - ev3;
+    glm::vec3 b = ev2 - ev3;
+    glm::vec3 n = glm::normalize(glm::cross(a, b));
 
     // Extrude the points above and below the plane of the triangle
-    vec3 pnts[6];
+    glm::vec3 pnts[6];
     pnts[0] = ev1 + n;
     pnts[1] = ev2 + n;
     pnts[2] = ev3 + n;
@@ -180,25 +245,10 @@ main(int argc, const char **argv) {
     for (int j = 0; j < 24; j++)
       tri_m.triVerts.insert(tri_m.triVerts.end(), faces[j]);
 
-    manifold::Manifold left = c;
     manifold::Manifold right(tri_m);
 
-    if (!right.NumTri())
-      continue;
-
     try {
-      c = left.Boolean(right, manifold::OpType::Add);
-#if defined(CHECK_INTERMEDIATES)
-      MeshGL imesh = c.GetMeshGL();
-      std::cout << "Face " << i << ": " << imesh.NumVert() << " vertices, " << imesh.NumTri() << " triangles\n";
-      if (!imesh.NumTri()) {
-	std::cerr << "ev1: " << ev1.x << "," << ev1.y << "," << ev1.z << "\n";
-	std::cerr << "ev2: " << ev2.x << "," << ev2.y << "," << ev2.z << "\n";
-	ExportMesh(std::string("fail_left.obj"), left.GetMeshGL(), {});
-	ExportMesh(std::string("fail_right.obj"), right.GetMeshGL(), {});
-	return -1;
-      }
-#endif
+      c += right;
     } catch (const std::exception &e) {
       std::cerr << "Faces - manifold boolean op failure: " << e.what() << "\n";
       return -1;
@@ -206,7 +256,7 @@ main(int argc, const char **argv) {
   }
   std::cerr << "Processing " << input.NumTri() << " triangles... done.\n";
 
-  ExportMesh(std::string("out.obj"), c.GetMeshGL(), {});
+  c.GetMeshGL().Write("out.obj");
 
   return 0;
 }

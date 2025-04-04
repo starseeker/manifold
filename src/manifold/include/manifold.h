@@ -20,6 +20,11 @@
 #include "public.h"
 #include "vec_view.h"
 
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <string>
+
 namespace manifold {
 
 /**
@@ -113,6 +118,99 @@ struct MeshGL {
   MeshGL(const Mesh& mesh);
 
   bool Merge();
+
+  /** @name Debugging I/O
+   * Self-contained mechanism for reading and writing MeshGL data.  Write
+   * functions create OBJ files ONLY intended to be read by Read routines and
+   * are NOT guaranteed to be readable by other programs/libraries.  Likewise,
+   * Read files are intended to read ONLY files created by Write routines and
+   * are not guaranteed to read arbitrary OBJ files. The intent is to support
+   * writing out internal data with as much precision as possible to allow
+   * reproduction of problems.  These routines should also NOT depend on
+   * external libraries - they need to be available regardless of whether
+   * MANIFOLD_EXPORT is enabled.
+   */
+  void Read(std::istream& stream) {
+    stream >> std::setprecision(19);
+    while (true) {
+      char c = stream.get();
+      if (stream.eof()) break;
+      switch (c) {
+        case '#': {
+          // skip comment
+          while (c != '\n' && !stream.eof()) {
+            c = stream.get();
+          }
+        break;
+        }
+        case 'v':
+          for (int _ : {0, 1, 2}) {
+            double x;
+            stream >> x;
+            vertProperties.push_back(x);
+          }
+          break;
+        case 'f':
+          for (int _ : {0, 1, 2}) {
+            unsigned int x;
+            stream >> x;
+            triVerts.push_back(x - 1);
+          }
+          break;
+	case '\n':
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  bool Read(std::string& filename) {
+    if (!filename.length())
+       return false;
+
+    std::ifstream ifile;
+    ifile.open(filename);
+    if (!ifile.is_open())
+       return false;
+    Read(ifile);
+    ifile.close();
+    return true;
+  }
+  bool Read(const char *filename) {
+    std::string fname(filename);
+    return Read(fname);
+  }
+
+  std::ostream& Write(std::ostream& stream) const {
+    stream << std::setprecision(19);  // for double precision
+    stream << std::fixed;             // for uniformity in output numbers
+    stream << "# ======= begin meshGL ======" << std::endl;
+    // TODO: vertex normal and face normal
+    for (size_t i = 0; i < vertProperties.size()/3; i++)
+      stream << "v " << vertProperties[3*i+0] << " " << vertProperties[3*i+1] << " " << vertProperties[3*i+2] << std::endl;
+    for (size_t i = 0; i < triVerts.size()/3; i++)
+      stream << "f " << triVerts[3*i+0]+1 << " " << triVerts[3*i+1]+1 << " " << triVerts[3*i+2]+1 << std::endl;
+    stream << "# ======== end meshGL =======" << std::endl;
+    return stream;
+  }
+  bool Write(std::string& filename) const {
+    if (!filename.length())
+     return false;
+
+    std::ofstream ofile;
+    ofile.open(filename);
+    if (!ofile.is_open())
+       return false;
+    Write(ofile);
+    ofile.close();
+    return true;
+  }
+  bool Write(const char *filename) const {
+    std::string fname(filename);
+    return Write(fname);
+  }
+
+
 };
 /** @} */
 
